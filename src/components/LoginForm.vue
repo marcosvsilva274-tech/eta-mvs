@@ -93,14 +93,6 @@ const handleEnter = (event) => {
         </div>
       </form>
 
-      <div class="credenciais-teste">
-        <p><strong>Credenciais de teste:</strong></p>
-        <ul>
-          <li>admin / admin123</li>
-          <li>operador / senha123</li>
-          <li>supervisor / supervisor123</li>
-        </ul>
-      </div>
     </div>
   </div>
 </template>
@@ -206,28 +198,4 @@ const handleEnter = (event) => {
   border: 1px solid #fcc;
 }
 
-.credenciais-teste {
-  background: #f5f5f5;
-  padding: 15px;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #666;
-}
-
-.credenciais-teste p {
-  margin: 0 0 10px 0;
-  font-weight: 600;
-}
-
-.credenciais-teste ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.credenciais-teste li {
-  padding: 4px 0;
-  font-family: 'Courier New', monospace;
-  color: #333;
-}
 </style>
