@@ -25,10 +25,20 @@ Defina `VITE_WS_URL` em um arquivo `.env.local` para conectar o painel ao backen
 VITE_WS_URL=ws://localhost:8080
 ```
 
-O painel espera mensagens JSON com leituras em `sensores`, identificadas por `ph`, `temperatura`, `turbidez` e `nivel`:
+Os gráficos comparativos exigem que cada leitura seja associada ao tanque. Envie os sensores dentro do ID correspondente: `agua-bruta`, `tanque-ativos`, `agua-tratada` ou `efluentes`. As variáveis aceitas são `turbidez`, `ph`, `temperatura` e `nivel` (percentual):
 
 ```json
-{"sensores":{"ph":7.12,"temperatura":24.3,"turbidez":0.82,"nivel":86}}
+{
+	"timestamp": "2026-10-01T12:00:00.000Z",
+	"sensores": {
+		"agua-bruta": { "turbidez": 1.2, "temperatura": 24.3, "nivel": 78 },
+		"tanque-ativos": { "turbidez": 2.0, "ph": 7.1, "nivel": 64 },
+		"agua-tratada": { "turbidez": 0.8, "ph": 7.2, "temperatura": 24.3, "nivel": 86 },
+		"efluentes": { "nivel": 47 }
+	}
+}
 ```
+
+Sem esse formato, os gráficos exibem dados demonstrativos. Leituras recebidas são mantidas no armazenamento local do navegador, com limite de 2.000 registros; o payload antigo com sensores globais continua atualizando o resumo, mas não permite compará-los por tanque.
 
 O login atual usa credenciais demonstrativas locais e nao substitui autenticacao de producao.
