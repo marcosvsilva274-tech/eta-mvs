@@ -11,10 +11,10 @@ const agora = ref(new Date())
 const periodo = ref(24)
 const wsStatus = ref('fallback')
 const sensores = ref([
-  { id: 'ph', nome: 'pH', valor: 7.12, unidade: 'pH', classe: 'cyan' },
-  { id: 'temperatura', nome: 'Temperatura', valor: 24.3, unidade: '°C', classe: 'green' },
-  { id: 'turbidez', nome: 'Turbidez', valor: 0.82, unidade: 'NTU', classe: 'amber' },
-  { id: 'nivel', nome: 'Nível tratado', valor: 86, unidade: '%', classe: 'blue' },
+  { id: 'ph', nome: 'pH', valor: 7.12, unidade: 'pH', classe: 'cyan', icone: '🧪' },
+  { id: 'temperatura', nome: 'Temperatura', valor: 24.3, unidade: '°C', classe: 'green', icone: '🌡️' },
+  { id: 'turbidez', nome: 'Turbidez', valor: 0.82, unidade: 'NTU', classe: 'amber', icone: '💧' },
+  { id: 'nivel', nome: 'Nível tratado', valor: 86, unidade: '%', classe: 'blue', icone: '🔵' },
 ])
 const tanquesComparacao = [
   { id: 'agua-bruta', nome: 'Água bruta', cor: '#16b9f4' },
@@ -88,6 +88,26 @@ const graficosComparativos = computed(() => {
   }))
 })
 const tanques = ref([{ nome: 'Água bruta', nivel: 78 }, { nome: 'Tratamento', nivel: 64 }, { nome: 'Água tratada', nivel: 86 }])
+const sensoresPorTanque = {
+  'agua-bruta': ['temperatura', 'turbidez', 'nivelAlto', 'nivelBaixo'],
+  'tanque-ativos': ['turbidez', 'ph', 'nivelAlto', 'nivelBaixo'],
+  'agua-tratada': ['temperatura', 'turbidez', 'ph', 'nivelAlto'],
+  efluentes: ['nivelAlto', 'nivelBaixo'],
+}
+const statusTanques = computed(() => tanquesComparacao.map((tanque) => ({
+  nome: tanque.nome,
+  medicoes: sensoresPorTanque[tanque.id].map((sensorId) => {
+    const sensor = sensores.value.find((item) => item.id === sensorId)
+    const nome = sensor?.nome || (sensorId === 'nivelAlto' ? 'Nível alto' : 'Nível baixo')
+    const icone = sensor?.icone || (sensorId === 'nivelAlto' ? '🔵' : '⚪')
+    const valorAtual = valorSensorPorTanque(tanque.id, sensorId, sensor?.valor)
+    const valor = typeof valorAtual === 'number' && sensor
+      ? `${valorAtual.toFixed(sensorId === 'temperatura' ? 1 : 2).replace('.', ',')} ${sensor.unidade}`.trim()
+      : valorAtual
+
+    return { chave: sensorId, nome, icone, valor, estado: 'NORMAL', estadoClasse: 'good', classe: sensor?.classe || 'blue' }
+  }),
+})))
 const equipamentos = ref([
   { nome: 'Bomba de captação', tag: 'B1', estado: 'LIGADA', ativo: true },
   { nome: 'Bomba de distribuição', tag: 'B2', estado: 'LIGADA', ativo: true },
@@ -120,6 +140,15 @@ function mudarModo(novoModo) {
 }
 function reconhecer(alarme) { alarme.ativo = false }
 function sair() { localStorage.removeItem('usuario_logado'); usuarioLogado.value = null }
+function valorSensorPorTanque(tanqueId, sensorId, valorPadrao) {
+  for (const registro of [...historicoComparativo.value].reverse()) {
+    const valor = registro.sensores?.[tanqueId]?.[sensorId]
+    if (valor !== null && valor !== undefined && valor !== '') return valor
+  }
+  if (sensorId === 'nivelAlto') return 'LIGADO'
+  if (sensorId === 'nivelBaixo') return 'DESLIGADO'
+  return valorPadrao ?? '—'
+}
 function leituraNumerica(registro, tanqueId, sensorId) {
   const valor = registro?.sensores?.[tanqueId]?.[sensorId]
   return valor !== null && valor !== undefined && valor !== '' && Number.isFinite(Number(valor)) ? Number(valor) : null
@@ -217,8 +246,20 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
 
       <section v-if="pagina === 'visao'" class="page-content">
         <div class="status-strip"><div><span class="status-dot"></span><strong>Sistema operando normalmente</strong><small>Última sincronização {{ hora }}</small></div><div class="strip-metric"><span>Modo atual</span><strong>{{ modo }}</strong></div><div class="strip-metric"><span>Alarmes ativos</span><strong class="danger">{{ ativos.length }}</strong></div><button class="outline-button" @click="pagina = 'alarmes'">Ver alarmes →</button></div>
-        <div class="section-heading"><div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span><h2>Qualidade da água</h2></div><span class="update-label">● Atualização automática</span></div>
-        <div class="sensor-grid"><article v-for="sensor in sensores" :key="sensor.id" class="sensor-card" :class="sensor.classe"><div class="card-top"><span>{{ sensor.nome }}</span><span class="sensor-state">● Normal</span></div><div class="sensor-reading"><strong>{{ sensor.valor }}</strong><small>{{ sensor.unidade }}</small></div><div class="card-bottom"><span>Atualizado às {{ hora }}</span><span class="trend">↗ 0.4%</span></div></article></div>
+        <div class="section-heading"><div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span><h2>Monitoramento por tanque</h2></div><span class="update-label">● Atualização automática</span></div>
+        <div class="tank-status-panel">
+          <article v-for="tanque in statusTanques" :key="tanque.nome" class="tank-status-item">
+            <strong>{{ tanque.nome }}<span>● NORMAL</span></strong>
+            <div class="tank-sensor-tags">
+              <div v-for="medicao in tanque.medicoes" :key="medicao.chave" class="tank-sensor-tag" :class="medicao.classe">
+                <span class="tag-icon">{{ medicao.icone }}</span>
+                <span>{{ medicao.nome }}</span>
+                <strong>{{ medicao.valor }}</strong>
+                <small>{{ medicao.estado }}</small>
+              </div>
+            </div>
+          </article>
+        </div>
         <div class="section-heading process-heading"><div><span class="section-kicker">FLUXO DO PROCESSO</span><h2>ETA em operação</h2></div><span class="flow-legend">● Fluxo ativo</span></div>
         <div class="process-panel"><div class="process-line"></div><div class="process-stages"><div class="stage"><div class="stage-icon pump">◉</div><span class="stage-index">01</span><strong>Captação</strong><small>Bomba B1 · ligada</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual"><span :style="{ height: `${tanques[0].nivel}%` }"></span></div><span class="stage-index">02</span><strong>Água bruta</strong><small>{{ tanques[0].nivel }}% · 10.000 L</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon treatment">✦</div><span class="stage-index">03</span><strong>Dosagem</strong><small>D1 · D2 · D3 ativas</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon mixer">↻</div><span class="stage-index">04</span><strong>Floculação</strong><small>Agitador M1 · ligado</small><span class="flow-arrow">›</span></div><div class="stage"><div class="filter-visual"><span></span></div><span class="stage-index">05</span><strong>Filtração</strong><small>Pressão normal</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon uv">UV</div><span class="stage-index">06</span><strong>Desinfecção</strong><small>UV · ativo</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual treated"><span :style="{ height: `${tanques[2].nivel}%` }"></span></div><span class="stage-index">07</span><strong>Água tratada</strong><small>{{ tanques[2].nivel }}% · pronta</small></div></div></div>
         <div class="lower-grid"><section class="panel-block"><div class="section-heading compact"><div><span class="section-kicker">ATUAÇÃO</span><h2>Equipamentos</h2></div><span class="manual-hint">{{ manual ? 'Comandos liberados' : 'Selecione MANUAL para comandar' }}</span></div><div class="equipment-grid"><button v-for="equipamento in equipamentos" :key="equipamento.tag" class="equipment-row" :class="{ on: equipamento.ativo }" :disabled="!manual" @click="equipamentoToggle(equipamento)"><span class="equipment-symbol">≋</span><span class="equipment-name"><strong>{{ equipamento.nome }}</strong><small>{{ equipamento.tag }}</small></span><span class="equipment-state">● {{ equipamento.estado }}</span></button></div></section><section class="panel-block mode-panel"><div class="section-heading compact"><div><span class="section-kicker">CONTROLE</span><h2>Modo de operação</h2></div><span class="lock-label">▣ Controle local</span></div><div class="mode-buttons"><button v-for="opcao in ['AUTOMÁTICO', 'MANUAL', 'PARADA']" :key="opcao" :class="{ selected: modo === opcao, stop: opcao === 'PARADA' }" @click="mudarModo(opcao)"><span>{{ opcao === 'AUTOMÁTICO' ? '▶' : opcao === 'MANUAL' ? '✋' : '■' }}</span>{{ opcao }}</button></div><div class="mode-description">● {{ modo === 'MANUAL' ? 'Operador no controle dos atuadores' : modo === 'PARADA' ? 'Atuadores em estado seguro' : 'ESP32 executando lógica de controle' }}</div></section></div>
