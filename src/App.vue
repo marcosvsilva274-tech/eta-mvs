@@ -14,7 +14,6 @@ const sensores = ref([
   { id: 'ph', nome: 'pH', valor: 7.12, unidade: 'pH', classe: 'cyan', icone: '🧪' },
   { id: 'temperatura', nome: 'Temperatura', valor: 24.3, unidade: '°C', classe: 'green', icone: '🌡️' },
   { id: 'turbidez', nome: 'Turbidez', valor: 0.82, unidade: 'NTU', classe: 'amber', icone: '💧' },
-  { id: 'nivel', nome: 'Nível tratado', valor: 86, unidade: '%', classe: 'blue', icone: '🔵' },
 ])
 const sensorSelecionado = ref(null)
 const tanquesComparacao = [
@@ -27,13 +26,13 @@ const variaveisComparacao = [
   { id: 'turbidez', titulo: 'Comparativo de turbidez', unidade: 'NTU', tanqueIds: ['agua-bruta', 'tanque-ativos', 'agua-tratada'] },
   { id: 'ph', titulo: 'Comparativo de pH', unidade: 'pH', tanqueIds: ['tanque-ativos', 'agua-tratada'] },
   { id: 'temperatura', titulo: 'Comparativo de temperatura', unidade: '°C', tanqueIds: ['agua-bruta', 'agua-tratada'] },
-  { id: 'nivel', titulo: 'Nível dos reservatórios', unidade: '%', tanqueIds: tanquesComparacao.map((tanque) => tanque.id) },
+  { id: 'nivel', titulo: 'Nível dos reservatórios', unidade: 'Estado', tanqueIds: tanquesComparacao.map((tanque) => tanque.id) },
 ]
 const valoresDemonstrativos = {
-  'agua-bruta': { turbidez: [1.2, 1.8, 1.3, 2.0, 1.5, 2.8, 2.4], temperatura: [24.3, 24.5, 24.6, 24.4, 24.8, 24.5, 24.3], nivel: [78, 80, 76, 82, 85, 83, 86] },
-  'tanque-ativos': { turbidez: [4.4, 3.8, 3.5, 2.9, 2.5, 2.2, 2.0], ph: [7.1, 7.0, 7.2, 7.1, 7.2, 7.1, 7.1], nivel: [64, 66, 65, 68, 68, 70, 72] },
-  'agua-tratada': { turbidez: [0.8, 0.7, 0.9, 0.6, 0.5, 0.7, 0.8], ph: [7.2, 7.2, 7.1, 7.2, 7.1, 7.2, 7.2], temperatura: [24.3, 24.2, 24.4, 24.3, 24.5, 24.4, 24.3], nivel: [86, 88, 89, 90, 88, 91, 92] },
-  efluentes: { nivel: [42, 45, 44, 43, 46, 48, 47] },
+  'agua-bruta': { turbidez: [1.2, 1.8, 1.3, 2.0, 1.5, 2.8, 2.4], temperatura: [24.3, 24.5, 24.6, 24.4, 24.8, 24.5, 24.3], nivel: ['CHEIO', 'CHEIO', 'CHEIO', 'VAZIO', 'VAZIO', 'CHEIO', 'CHEIO'] },
+  'tanque-ativos': { turbidez: [4.4, 3.8, 3.5, 2.9, 2.5, 2.2, 2.0], ph: [7.1, 7.0, 7.2, 7.1, 7.2, 7.1, 7.1], nivel: ['VAZIO', 'VAZIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO'] },
+  'agua-tratada': { turbidez: [0.8, 0.7, 0.9, 0.6, 0.5, 0.7, 0.8], ph: [7.2, 7.2, 7.1, 7.2, 7.1, 7.2, 7.2], temperatura: [24.3, 24.2, 24.4, 24.3, 24.5, 24.4, 24.3], nivel: ['CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO'] },
+  efluentes: { nivel: ['VAZIO', 'VAZIO', 'VAZIO', 'CHEIO', 'VAZIO', 'VAZIO', 'CHEIO'] },
 }
 const chaveHistorico = 'supervisorio-historico-comparativo-v1'
 function criarHistoricoDemonstrativo() {
@@ -75,7 +74,7 @@ const graficosComparativos = computed(() => {
       const tanque = tanquesComparacao.find((item) => item.id === tanqueId)
       return {
         label: tanque.nome,
-        data: registros.map((registro) => leituraNumerica(registro, tanqueId, variavel.id)),
+        data: registros.map((registro) => valorDoGrafico(registro, tanqueId, variavel.id)),
         borderColor: tanque.cor,
         backgroundColor: tanque.cor,
         spanGaps: false,
@@ -83,12 +82,14 @@ const graficosComparativos = computed(() => {
     }),
     valoresAtuais: variavel.tanqueIds.map((tanqueId) => {
       const tanque = tanquesComparacao.find((item) => item.id === tanqueId)
-      const registro = [...historicoComparativo.value].reverse().find((item) => leituraNumerica(item, tanqueId, variavel.id) !== null)
-      return { ...tanque, valor: registro ? leituraNumerica(registro, tanqueId, variavel.id) : null }
+      const registro = [...historicoComparativo.value].reverse().find((item) => valorDoGrafico(item, tanqueId, variavel.id) !== null)
+      const valor = registro
+        ? variavel.id === 'nivel' ? estadoNivelRegistro(registro, tanqueId) : leituraNumerica(registro, tanqueId, variavel.id)
+        : null
+      return { ...tanque, valor }
     }),
   }))
 })
-const tanques = ref([{ nome: 'Água bruta', nivel: 78 }, { nome: 'Tratamento', nivel: 64 }, { nome: 'Água tratada', nivel: 86 }])
 const sensoresPorTanque = {
   'agua-bruta': ['temperatura', 'turbidez', 'nivelAlto', 'nivelBaixo'],
   'tanque-ativos': ['turbidez', 'ph', 'nivelAlto', 'nivelBaixo'],
@@ -156,12 +157,49 @@ function abrirDetalhe(medicao, tanque) {
 }
 function valorSensorPorTanque(tanqueId, sensorId, valorPadrao) {
   for (const registro of [...historicoComparativo.value].reverse()) {
+    if (sensorId === 'nivelAlto' || sensorId === 'nivelBaixo') {
+      const estado = estadoNivelRegistro(registro, tanqueId)
+      if (estado) return sensorId === 'nivelAlto' ? (estado === 'CHEIO' ? 'LIGADO' : 'DESLIGADO') : (estado === 'VAZIO' ? 'LIGADO' : 'DESLIGADO')
+    }
     const valor = registro.sensores?.[tanqueId]?.[sensorId]
     if (valor !== null && valor !== undefined && valor !== '') return valor
   }
-  if (sensorId === 'nivelAlto') return 'LIGADO'
-  if (sensorId === 'nivelBaixo') return 'DESLIGADO'
+  if (sensorId === 'nivelAlto' || sensorId === 'nivelBaixo') return '—'
   return valorPadrao ?? '—'
+}
+function normalizarEstadoNivel(valor) {
+  const estado = String(valor ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+  if (['CHEIO', 'FULL', 'TRUE', '1'].includes(estado)) return 'CHEIO'
+  if (['VAZIO', 'EMPTY', 'FALSE', '0'].includes(estado)) return 'VAZIO'
+  return null
+}
+function switchAtivo(valor) {
+  const estado = String(valor ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+  if (['LIGADO', 'ON', 'TRUE', '1'].includes(estado)) return true
+  if (['DESLIGADO', 'OFF', 'FALSE', '0'].includes(estado)) return false
+  return null
+}
+function estadoNivelLeituras(leituras) {
+  const estadoDireto = normalizarEstadoNivel(leituras?.nivel)
+  if (estadoDireto) return estadoDireto
+  if (switchAtivo(leituras?.nivelAlto) === true) return 'CHEIO'
+  if (switchAtivo(leituras?.nivelBaixo) === true) return 'VAZIO'
+  return null
+}
+function estadoNivelRegistro(registro, tanqueId) {
+  return estadoNivelLeituras(registro?.sensores?.[tanqueId])
+}
+function valorDoGrafico(registro, tanqueId, sensorId) {
+  if (sensorId !== 'nivel') return leituraNumerica(registro, tanqueId, sensorId)
+  const estado = estadoNivelRegistro(registro, tanqueId)
+  return estado === 'CHEIO' ? 1 : estado === 'VAZIO' ? 0 : null
+}
+function estadoNivelAtual(tanqueId) {
+  for (const registro of [...historicoComparativo.value].reverse()) {
+    const estado = estadoNivelRegistro(registro, tanqueId)
+    if (estado) return estado
+  }
+  return 'SEM LEITURA'
 }
 function leituraNumerica(registro, tanqueId, sensorId) {
   const valor = registro?.sensores?.[tanqueId]?.[sensorId]
@@ -183,13 +221,18 @@ function atualizarHistoricoComparativo(pacote) {
     const leituras = sensoresRecebidos[tanque.id]
     if (!leituras || typeof leituras !== 'object' || Array.isArray(leituras)) continue
 
-    for (const sensor of ['turbidez', 'ph', 'temperatura', 'nivel']) {
+    for (const sensor of ['turbidez', 'ph', 'temperatura']) {
       const recebido = leituras[sensor]
       if (recebido === null || recebido === undefined || recebido === '') continue
       const valor = Number(recebido)
-      if (!Number.isFinite(valor) || (sensor === 'nivel' && (valor < 0 || valor > 100))) continue
+      if (!Number.isFinite(valor)) continue
       atualizacoes[tanque.id] ||= {}
       atualizacoes[tanque.id][sensor] = valor
+    }
+    const estadoNivel = estadoNivelLeituras(leituras)
+    if (estadoNivel) {
+      atualizacoes[tanque.id] ||= {}
+      atualizacoes[tanque.id].nivel = estadoNivel
     }
   }
   if (!Object.keys(atualizacoes).length) return false
@@ -293,7 +336,7 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
           </section>
         </div>
         <div class="section-heading process-heading"><div><span class="section-kicker">FLUXO DO PROCESSO</span><h2>ETA em operação</h2></div><span class="flow-legend">● Fluxo ativo</span></div>
-        <div class="process-panel"><div class="process-line"></div><div class="process-stages"><div class="stage"><div class="stage-icon pump">◉</div><span class="stage-index">01</span><strong>Captação</strong><small>Bomba B1 · ligada</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual"><span :style="{ height: `${tanques[0].nivel}%` }"></span></div><span class="stage-index">02</span><strong>Água bruta</strong><small>{{ tanques[0].nivel }}% · 10.000 L</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon treatment">✦</div><span class="stage-index">03</span><strong>Dosagem</strong><small>D1 · D2 · D3 ativas</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon mixer">↻</div><span class="stage-index">04</span><strong>Floculação</strong><small>Agitador M1 · ligado</small><span class="flow-arrow">›</span></div><div class="stage"><div class="filter-visual"><span></span></div><span class="stage-index">05</span><strong>Filtração</strong><small>Pressão normal</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon uv">UV</div><span class="stage-index">06</span><strong>Desinfecção</strong><small>UV · ativo</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual treated"><span :style="{ height: `${tanques[2].nivel}%` }"></span></div><span class="stage-index">07</span><strong>Água tratada</strong><small>{{ tanques[2].nivel }}% · pronta</small></div></div></div>
+        <div class="process-panel"><div class="process-line"></div><div class="process-stages"><div class="stage"><div class="stage-icon pump">◉</div><span class="stage-index">01</span><strong>Captação</strong><small>Bomba B1 · ligada</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual" :class="{ full: estadoNivelAtual('agua-bruta') === 'CHEIO', empty: estadoNivelAtual('agua-bruta') === 'VAZIO' }"><span></span></div><span class="stage-index">02</span><strong>Água bruta</strong><small>{{ estadoNivelAtual('agua-bruta') }}</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon treatment">✦</div><span class="stage-index">03</span><strong>Dosagem</strong><small>D1 · D2 · D3 ativas</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon mixer">↻</div><span class="stage-index">04</span><strong>Floculação</strong><small>Agitador M1 · ligado</small><span class="flow-arrow">›</span></div><div class="stage"><div class="filter-visual"><span></span></div><span class="stage-index">05</span><strong>Filtração</strong><small>Pressão normal</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon uv">UV</div><span class="stage-index">06</span><strong>Desinfecção</strong><small>UV · ativo</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual treated" :class="{ full: estadoNivelAtual('agua-tratada') === 'CHEIO', empty: estadoNivelAtual('agua-tratada') === 'VAZIO' }"><span></span></div><span class="stage-index">07</span><strong>Água tratada</strong><small>{{ estadoNivelAtual('agua-tratada') }}</small></div></div></div>
         <div class="lower-grid"><section class="panel-block"><div class="section-heading compact"><div><span class="section-kicker">ATUAÇÃO</span><h2>Equipamentos</h2></div><span class="manual-hint">{{ manual ? 'Comandos liberados' : 'Selecione MANUAL para comandar' }}</span></div><div class="equipment-grid"><button v-for="equipamento in equipamentos" :key="equipamento.tag" class="equipment-row" :class="{ on: equipamento.ativo }" :disabled="!manual" @click="equipamentoToggle(equipamento)"><span class="equipment-symbol">≋</span><span class="equipment-name"><strong>{{ equipamento.nome }}</strong><small>{{ equipamento.tag }}</small></span><span class="equipment-state">● {{ equipamento.estado }}</span></button></div></section><section class="panel-block mode-panel"><div class="section-heading compact"><div><span class="section-kicker">CONTROLE</span><h2>Modo de operação</h2></div><span class="lock-label">▣ Controle local</span></div><div class="mode-buttons"><button v-for="opcao in ['AUTOMÁTICO', 'MANUAL', 'PARADA']" :key="opcao" :class="{ selected: modo === opcao, stop: opcao === 'PARADA' }" @click="mudarModo(opcao)"><span>{{ opcao === 'AUTOMÁTICO' ? '▶' : opcao === 'MANUAL' ? '✋' : '■' }}</span>{{ opcao }}</button></div><div class="mode-description">● {{ modo === 'MANUAL' ? 'Operador no controle dos atuadores' : modo === 'PARADA' ? 'Atuadores em estado seguro' : 'ESP32 executando lógica de controle' }}</div></section></div>
       </section>
 

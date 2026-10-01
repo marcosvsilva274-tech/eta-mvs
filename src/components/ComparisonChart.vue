@@ -28,6 +28,10 @@ let chart
 
 function formatarValor(valor) {
   if (valor === null || valor === undefined) return 'Sem leitura'
+  if (props.unidade === 'Estado') {
+    const estado = String(valor).toUpperCase()
+    return Number(valor) === 1 || estado === 'CHEIO' ? 'Cheio' : Number(valor) === 0 || estado === 'VAZIO' ? 'Vazio' : 'Sem leitura'
+  }
   return `${Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} ${props.unidade}`.trim()
 }
 
@@ -51,8 +55,10 @@ function atualizarGrafico() {
     pointHoverRadius: 5,
     tension: props.linhasSuaves ? 0.35 : 0,
   }))
-  chart.options.scales.y.beginAtZero = props.unidade === '%'
-  chart.options.scales.y.max = props.unidade === '%' ? 100 : undefined
+  chart.options.scales.y.beginAtZero = props.unidade === 'Estado'
+  chart.options.scales.y.min = props.unidade === 'Estado' ? 0 : undefined
+  chart.options.scales.y.max = props.unidade === 'Estado' ? 1 : undefined
+  chart.options.scales.y.ticks.stepSize = props.unidade === 'Estado' ? 1 : undefined
   chart.update('none')
 }
 
@@ -73,7 +79,7 @@ onMounted(() => {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: muted, maxTicksLimit: 8, maxRotation: 0 } },
-        y: { grid: { color: line }, ticks: { color: muted, callback: (valor) => `${valor} ${props.unidade}`.trim() } },
+        y: { grid: { color: line }, ticks: { color: muted, callback: (valor) => props.unidade === 'Estado' ? (Number(valor) === 1 ? 'Cheio' : 'Vazio') : `${valor} ${props.unidade}`.trim() } },
       },
     },
   })

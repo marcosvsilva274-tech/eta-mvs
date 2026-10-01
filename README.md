@@ -25,16 +25,16 @@ Defina `VITE_WS_URL` em um arquivo `.env.local` para conectar o painel ao backen
 VITE_WS_URL=ws://localhost:8080
 ```
 
-Os gráficos comparativos exigem que cada leitura seja associada ao tanque. Envie os sensores dentro do ID correspondente: `agua-bruta`, `tanque-ativos`, `agua-tratada` ou `efluentes`. As variáveis aceitas são `turbidez`, `ph`, `temperatura` e `nivel` (percentual):
+Os gráficos comparativos exigem que cada leitura seja associada ao tanque. Envie os sensores dentro do ID correspondente: `agua-bruta`, `tanque-ativos`, `agua-tratada` ou `efluentes`. As variáveis aceitas são `turbidez`, `ph`, `temperatura` e `nivel` como `CHEIO` ou `VAZIO`. Também são aceitos contatos digitais: `nivelAlto` ligado indica `CHEIO` e `nivelBaixo` ligado indica `VAZIO`:
 
 ```json
 {
 	"timestamp": "2026-10-01T12:00:00.000Z",
 	"sensores": {
-		"agua-bruta": { "turbidez": 1.2, "temperatura": 24.3, "nivel": 78 },
-		"tanque-ativos": { "turbidez": 2.0, "ph": 7.1, "nivel": 64 },
-		"agua-tratada": { "turbidez": 0.8, "ph": 7.2, "temperatura": 24.3, "nivel": 86 },
-		"efluentes": { "nivel": 47 }
+		"agua-bruta": { "turbidez": 1.2, "temperatura": 24.3, "nivel": "CHEIO" },
+		"tanque-ativos": { "turbidez": 2.0, "ph": 7.1, "nivel": "VAZIO" },
+		"agua-tratada": { "turbidez": 0.8, "ph": 7.2, "temperatura": 24.3, "nivel": "CHEIO" },
+		"efluentes": { "nivel": "VAZIO" }
 	}
 }
 ```

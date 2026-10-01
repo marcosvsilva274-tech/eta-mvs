@@ -77,6 +77,8 @@ h1, h2, p { margin: 0; }
 .update-label, .flow-legend, .manual-hint, .lock-label { color: var(--muted); font-size: 10px; }
 .sensor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .tank-status-panel { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+.tank-visual.full span { height: 100%; }
+.tank-visual.empty span { height: 0; }
 .tank-status-item { min-width: 0; min-height: 276px; padding: 19px 20px 17px; border: 1px solid rgba(108, 165, 201, .28); border-radius: 11px; background: rgba(8, 29, 39, .88); box-shadow: inset 0 0 0 1px rgba(135, 202, 240, .06); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .tank-status-item:hover { transform: translateY(-2px); border-color: rgba(95, 205, 255, .5); box-shadow: 0 8px 20px rgba(0, 0, 0, .16), inset 0 0 0 1px rgba(135, 202, 240, .06); }
 .tank-status-item > strong { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid rgba(122, 188, 220, .14); color: var(--text); font-size: 15px; }
