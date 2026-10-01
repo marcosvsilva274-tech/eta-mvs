@@ -16,6 +16,7 @@ const sensores = ref([
   { id: 'turbidez', nome: 'Turbidez', valor: 0.82, unidade: 'NTU', classe: 'amber', icone: '💧' },
   { id: 'nivel', nome: 'Nível tratado', valor: 86, unidade: '%', classe: 'blue', icone: '🔵' },
 ])
+const sensorSelecionado = ref(null)
 const tanquesComparacao = [
   { id: 'agua-bruta', nome: 'Água bruta', cor: '#16b9f4' },
   { id: 'tanque-ativos', nome: 'Tanque de ativos', cor: '#19e69a' },
@@ -140,6 +141,19 @@ function mudarModo(novoModo) {
 }
 function reconhecer(alarme) { alarme.ativo = false }
 function sair() { localStorage.removeItem('usuario_logado'); usuarioLogado.value = null }
+function abrirDetalhe(medicao, tanque) {
+  const historico = historicoComparativo.value
+    .map((registro) => registro.sensores?.[tanque.id]?.[medicao.chave])
+    .filter((valor) => valor !== null && valor !== undefined && valor !== '')
+
+  sensorSelecionado.value = {
+    ...medicao,
+    tanque: tanque.nome,
+    ultimaAtualizacao: hora.value,
+    modo: modo.value,
+    historico: historico.length ? historico.slice(-5) : [medicao.valor],
+  }
+}
 function valorSensorPorTanque(tanqueId, sensorId, valorPadrao) {
   for (const registro of [...historicoComparativo.value].reverse()) {
     const valor = registro.sensores?.[tanqueId]?.[sensorId]
@@ -251,14 +265,32 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
           <article v-for="tanque in statusTanques" :key="tanque.nome" class="tank-status-item">
             <strong>{{ tanque.nome }}<span>● NORMAL</span></strong>
             <div class="tank-sensor-tags">
-              <div v-for="medicao in tanque.medicoes" :key="medicao.chave" class="tank-sensor-tag" :class="medicao.classe">
+              <button v-for="medicao in tanque.medicoes" :key="medicao.chave" type="button" class="tank-sensor-tag" :class="medicao.classe" :aria-label="`${medicao.nome} do tanque ${tanque.nome}: ${medicao.valor}. Abrir detalhes`" @click="abrirDetalhe(medicao, tanque)">
                 <span class="tag-icon">{{ medicao.icone }}</span>
                 <span>{{ medicao.nome }}</span>
                 <strong>{{ medicao.valor }}</strong>
                 <small>{{ medicao.estado }}</small>
-              </div>
+              </button>
             </div>
           </article>
+        </div>
+        <div v-if="sensorSelecionado" class="metric-modal-overlay" tabindex="-1" @click="sensorSelecionado = null" @keydown.esc="sensorSelecionado = null">
+          <section class="metric-modal" role="dialog" aria-modal="true" :aria-label="`Detalhes de ${sensorSelecionado.nome}`" @click.stop>
+            <button type="button" class="modal-close" aria-label="Fechar detalhes" @click="sensorSelecionado = null">×</button>
+            <div class="modal-header">
+              <span class="modal-kicker">{{ sensorSelecionado.tanque }} · {{ sensorSelecionado.nome }}</span>
+              <h3>{{ sensorSelecionado.valor }}</h3>
+            </div>
+            <div class="modal-status good">{{ sensorSelecionado.estado }}</div>
+            <div class="modal-grid">
+              <div class="modal-field"><span>Tanque</span><strong>{{ sensorSelecionado.tanque }}</strong></div>
+              <div class="modal-field"><span>Valor atual</span><strong>{{ sensorSelecionado.valor }}</strong></div>
+              <div class="modal-field"><span>Estado</span><strong>{{ sensorSelecionado.estado }}</strong></div>
+              <div class="modal-field"><span>Última atualização</span><strong>{{ sensorSelecionado.ultimaAtualizacao }}</strong></div>
+              <div class="modal-field"><span>Histórico recente</span><strong>{{ sensorSelecionado.historico.join(' · ') }}</strong></div>
+              <div class="modal-field"><span>Modo</span><strong>{{ sensorSelecionado.modo }}</strong></div>
+            </div>
+          </section>
         </div>
         <div class="section-heading process-heading"><div><span class="section-kicker">FLUXO DO PROCESSO</span><h2>ETA em operação</h2></div><span class="flow-legend">● Fluxo ativo</span></div>
         <div class="process-panel"><div class="process-line"></div><div class="process-stages"><div class="stage"><div class="stage-icon pump">◉</div><span class="stage-index">01</span><strong>Captação</strong><small>Bomba B1 · ligada</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual"><span :style="{ height: `${tanques[0].nivel}%` }"></span></div><span class="stage-index">02</span><strong>Água bruta</strong><small>{{ tanques[0].nivel }}% · 10.000 L</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon treatment">✦</div><span class="stage-index">03</span><strong>Dosagem</strong><small>D1 · D2 · D3 ativas</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon mixer">↻</div><span class="stage-index">04</span><strong>Floculação</strong><small>Agitador M1 · ligado</small><span class="flow-arrow">›</span></div><div class="stage"><div class="filter-visual"><span></span></div><span class="stage-index">05</span><strong>Filtração</strong><small>Pressão normal</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon uv">UV</div><span class="stage-index">06</span><strong>Desinfecção</strong><small>UV · ativo</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual treated"><span :style="{ height: `${tanques[2].nivel}%` }"></span></div><span class="stage-index">07</span><strong>Água tratada</strong><small>{{ tanques[2].nivel }}% · pronta</small></div></div></div>
