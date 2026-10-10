@@ -39,6 +39,20 @@ Os gráficos comparativos exigem que cada leitura seja associada ao tanque. Envi
 }
 ```
 
+Para animar o nível da água, envie `nivelPercentual` ou `nivelPorcentagem` de `0` a `100`, ou envie `nivel` numérico nessa mesma faixa. Os contatos `nivelAlto` e `nivelBaixo` também atualizam o tanque e os indicadores; eles aceitam booleanos, `0`/`1`, `ON`/`OFF` ou `LIGADO`/`DESLIGADO`. As mensagens podem vir dentro de `sensores.tanque-ativos` ou como sensores globais:
+
+```json
+{
+	"sensores": {
+		"tanque-ativos": {
+			"nivelPercentual": 64,
+			"nivelAlto": false,
+			"nivelBaixo": false
+		}
+	}
+}
+```
+
 Sem esse formato, os gráficos exibem dados demonstrativos. Leituras recebidas são mantidas no armazenamento local do navegador, com limite de 2.000 registros; o payload antigo com sensores globais continua atualizando o resumo, mas não permite compará-los por tanque.
 
 O login atual usa credenciais demonstrativas locais e nao substitui autenticacao de producao.

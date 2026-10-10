@@ -91,12 +91,13 @@ const graficosComparativos = computed(() => {
   }))
 })
 const sensoresPorTanque = {
-  'agua-bruta': ['temperatura', 'turbidez', 'nivelAlto', 'nivelBaixo'],
+  'agua-bruta': ['temperatura', 'nivelAlto', 'nivelBaixo'],
   'tanque-ativos': ['turbidez', 'ph', 'nivelAlto', 'nivelBaixo'],
-  'agua-tratada': ['temperatura', 'turbidez', 'ph', 'nivelAlto'],
+  'agua-tratada': ['temperatura', 'turbidez', 'ph', 'nivelAlto', 'nivelBaixo'],
   efluentes: ['nivelAlto', 'nivelBaixo'],
 }
 const statusTanques = computed(() => tanquesComparacao.map((tanque) => ({
+  id: tanque.id,
   nome: tanque.nome,
   medicoes: sensoresPorTanque[tanque.id].map((sensorId) => {
     const sensor = sensores.value.find((item) => item.id === sensorId)
@@ -111,34 +112,69 @@ const statusTanques = computed(() => tanquesComparacao.map((tanque) => ({
   }),
 })))
 const equipamentos = ref([
-  { nome: 'Bomba de captação', tag: 'B1', estado: 'LIGADA', ativo: true },
-  { nome: 'Bomba de distribuição', tag: 'B2', estado: 'LIGADA', ativo: true },
-  { nome: 'Agitador / floculação', tag: 'M1', estado: 'LIGADO', ativo: true },
-  { nome: 'Dosadora coagulante', tag: 'D1', estado: 'LIGADA', ativo: true },
-  { nome: 'Dosadora alcalinizante', tag: 'D2', estado: 'LIGADA', ativo: true },
-  { nome: 'Dosadora sanitizante', tag: 'D3', estado: 'LIGADA', ativo: true },
+  { nome: 'Bomba 1', tag: 'B1', tipo: 'pump', cor: '#078ee8', ativo: true },
+  { nome: 'Dosador 1', tag: 'D1', tipo: 'doser', cor: '#ffc52e', ativo: true },
+  { nome: 'Dosador 2', tag: 'D2', tipo: 'doser', cor: '#25d47d', ativo: true },
+  { nome: 'Dosador 3', tag: 'D3', tipo: 'doser', cor: '#078ee8', ativo: true },
+  { nome: 'Solenoide 1', tag: 'S1', tipo: 'solenoid', cor: '#e8ad45', ativo: true },
+  { nome: 'Solenoide 2', tag: 'S2', tipo: 'solenoid', cor: '#e8ad45', ativo: true },
 ])
 const alarmes = ref([
   { prioridade: 'alta', equipamento: 'Comunicação', descricao: 'Última resposta do ESP32 há 12 segundos', hora: '14:26:19', ativo: true },
   { prioridade: 'media', equipamento: 'Reservatório tratado', descricao: 'Nível acima do limite de atenção (85%)', hora: '14:20:44', ativo: true },
   { prioridade: 'baixa', equipamento: 'Filtro', descricao: 'Manutenção preventiva programada', hora: '12:00:00', ativo: false },
 ])
+const filtroAlarmes = ref('ativos')
+const alarmesPainel = ref([
+  { title: 'Nível alto — Tanque de ativos', severity: 'Crítico', status: 'Ativo', description: 'Exemplo: nível acima do limite configurado.', badge: 'Novo', type: 'critical', icon: '⚠', ativo: true },
+  { title: 'Temperatura fora da faixa', severity: 'Atenção', status: 'Ativo', description: 'Exemplo: leitura fora dos limites configurados.', badge: '', type: 'warning', icon: '⚡', ativo: true },
+  { title: 'Falha de comunicação MQTT', severity: 'Comunicação', status: 'Histórico', description: 'Perda de atualização dos dados do supervisório.', badge: '', type: 'info', icon: '◔', ativo: false },
+])
+const alarmesAtivos = computed(() => alarmesPainel.value.filter((alarme) => alarme.ativo))
+const alarmesHistorico = computed(() => alarmesPainel.value.filter((alarme) => !alarme.ativo))
+const alarmesResumo = computed(() => [
+  { label: 'Todos', value: alarmesPainel.value.length, tone: 'normal' },
+  { label: 'Atenção', value: alarmesPainel.value.filter((alarme) => alarme.type === 'warning' && alarme.ativo).length, tone: 'warning' },
+  { label: 'Críticos', value: alarmesPainel.value.filter((alarme) => alarme.type === 'critical' && alarme.ativo).length, tone: 'danger' },
+])
 const paginas = [{ id: 'visao', icone: '▦', titulo: 'Visão geral' }, { id: 'historico', icone: '◷', titulo: 'Histórico' }, { id: 'alarmes', icone: '♢', titulo: 'Alarmes', badge: 2 }, { id: 'configuracoes', icone: '⚙', titulo: 'Configurações' }]
+
+function desativarAlarme(alarme) {
+  alarme.ativo = false
+  alarme.status = 'Histórico'
+}
+
+function reativarAlarme(alarme) {
+  alarme.ativo = true
+  alarme.status = 'Ativo'
+  filtroAlarmes.value = 'ativos'
+}
 const hora = computed(() => agora.value.toLocaleTimeString('pt-BR'))
 const data = computed(() => agora.value.toLocaleDateString('pt-BR'))
 const ativos = computed(() => alarmes.value.filter((alarme) => alarme.ativo))
 const manual = computed(() => modo.value === 'MANUAL')
+let estadosAutomaticos = new Map()
 let clock
 let socket
 
 function equipamentoToggle(equipamento) {
   if (!manual.value) return
   equipamento.ativo = !equipamento.ativo
-  equipamento.estado = equipamento.ativo ? 'LIGADA' : 'DESLIGADA'
 }
 function mudarModo(novoModo) {
+  if (modo.value === novoModo) return
+  const modoAnterior = modo.value
+  if (modoAnterior === 'AUTOMÁTICO' && ['MANUAL', 'PARADA'].includes(novoModo)) {
+    estadosAutomaticos = new Map(equipamentos.value.map((equipamento) => [equipamento.tag, equipamento.ativo]))
+  }
+  if (novoModo === 'PARADA') {
+    equipamentos.value.forEach((equipamento) => { equipamento.ativo = false })
+  } else if (novoModo === 'AUTOMÁTICO' && ['MANUAL', 'PARADA'].includes(modoAnterior)) {
+    equipamentos.value.forEach((equipamento) => {
+      if (estadosAutomaticos.has(equipamento.tag)) equipamento.ativo = estadosAutomaticos.get(equipamento.tag)
+    })
+  }
   modo.value = novoModo
-  if (novoModo === 'PARADA') equipamentos.value.forEach((equipamento) => { equipamento.ativo = false; equipamento.estado = 'DESLIGADA' })
 }
 function reconhecer(alarme) { alarme.ativo = false }
 function sair() { localStorage.removeItem('usuario_logado'); usuarioLogado.value = null }
@@ -157,12 +193,16 @@ function abrirDetalhe(medicao, tanque) {
 }
 function valorSensorPorTanque(tanqueId, sensorId, valorPadrao) {
   for (const registro of [...historicoComparativo.value].reverse()) {
+    const leitura = registro.sensores?.[tanqueId]?.[sensorId]
     if (sensorId === 'nivelAlto' || sensorId === 'nivelBaixo') {
+      const contato = switchAtivo(leitura)
+      if (contato !== null) return contato ? 'LIGADO' : 'DESLIGADO'
       const estado = estadoNivelRegistro(registro, tanqueId)
       if (estado) return sensorId === 'nivelAlto' ? (estado === 'CHEIO' ? 'LIGADO' : 'DESLIGADO') : (estado === 'VAZIO' ? 'LIGADO' : 'DESLIGADO')
+      const percentual = percentualNivelLeituras(registro.sensores?.[tanqueId])
+      if (percentual !== null) return sensorId === 'nivelAlto' ? (percentual >= 80 ? 'LIGADO' : 'DESLIGADO') : (percentual <= 20 ? 'LIGADO' : 'DESLIGADO')
     }
-    const valor = registro.sensores?.[tanqueId]?.[sensorId]
-    if (valor !== null && valor !== undefined && valor !== '') return valor
+    if (leitura !== null && leitura !== undefined && leitura !== '') return leitura
   }
   if (sensorId === 'nivelAlto' || sensorId === 'nivelBaixo') return '—'
   return valorPadrao ?? '—'
@@ -179,8 +219,38 @@ function switchAtivo(valor) {
   if (['DESLIGADO', 'OFF', 'FALSE', '0'].includes(estado)) return false
   return null
 }
+function normalizarPercentualNivel(valor) {
+  if (typeof valor !== 'number' && typeof valor !== 'string') return null
+  const texto = String(valor).trim().replace(/\s*%$/, '').replace(',', '.')
+  if (!/^\d+(\.\d+)?$/.test(texto)) return null
+  const percentual = Number(texto)
+  return Number.isFinite(percentual) ? Math.max(0, Math.min(100, percentual)) : null
+}
+function percentualNivelExplicito(leituras) {
+  const percentualRecebido = leituras?.nivelPercentual ?? leituras?.nivelPorcentagem
+  const percentual = normalizarPercentualNivel(percentualRecebido)
+  if (percentual !== null) return percentual
+
+  const nivel = leituras?.nivel
+  if (typeof nivel === 'number') return normalizarPercentualNivel(nivel)
+  const estado = normalizarEstadoNivel(nivel)
+  if (estado === 'CHEIO') return 90
+  if (estado === 'VAZIO') return 8
+  return normalizarPercentualNivel(nivel)
+}
+function percentualNivelLeituras(leituras) {
+  const percentual = percentualNivelExplicito(leituras)
+  if (percentual !== null) return percentual
+
+  const nivelAlto = switchAtivo(leituras?.nivelAlto)
+  const nivelBaixo = switchAtivo(leituras?.nivelBaixo)
+  if (nivelAlto === true) return 90
+  if (nivelBaixo === true) return 8
+  if (nivelAlto === false || nivelBaixo === false) return 50
+  return null
+}
 function estadoNivelLeituras(leituras) {
-  const estadoDireto = normalizarEstadoNivel(leituras?.nivel)
+  const estadoDireto = typeof leituras?.nivel === 'number' ? null : normalizarEstadoNivel(leituras?.nivel)
   if (estadoDireto) return estadoDireto
   if (switchAtivo(leituras?.nivelAlto) === true) return 'CHEIO'
   if (switchAtivo(leituras?.nivelBaixo) === true) return 'VAZIO'
@@ -192,7 +262,10 @@ function estadoNivelRegistro(registro, tanqueId) {
 function valorDoGrafico(registro, tanqueId, sensorId) {
   if (sensorId !== 'nivel') return leituraNumerica(registro, tanqueId, sensorId)
   const estado = estadoNivelRegistro(registro, tanqueId)
-  return estado === 'CHEIO' ? 1 : estado === 'VAZIO' ? 0 : null
+  if (estado === 'CHEIO') return 1
+  if (estado === 'VAZIO') return 0
+  const percentual = percentualNivelLeituras(registro?.sensores?.[tanqueId])
+  return percentual === null ? null : percentual / 100
 }
 function estadoNivelAtual(tanqueId) {
   for (const registro of [...historicoComparativo.value].reverse()) {
@@ -200,6 +273,23 @@ function estadoNivelAtual(tanqueId) {
     if (estado) return estado
   }
   return 'SEM LEITURA'
+}
+function percentualNivelAtual(tanqueId) {
+  for (const registro of [...historicoComparativo.value].reverse()) {
+    const percentual = percentualNivelLeituras(registro.sensores?.[tanqueId])
+    if (percentual !== null) return percentual
+  }
+  return 50
+}
+const tanquesPainel = computed(() => statusTanques.value.map((tanque) => ({
+  ...tanque,
+  percentualNivel: percentualNivelAtual(tanque.id),
+  sensoresNivel: tanque.medicoes.filter((medicao) => medicao.chave.startsWith('nivel')),
+})))
+const tanqueSelecionadoId = ref(null)
+const controlesEquipamentosAbertos = computed(() => tanqueSelecionadoId.value !== null)
+function alternarControlesTanque(tanqueId) {
+  tanqueSelecionadoId.value = tanqueSelecionadoId.value === tanqueId ? null : tanqueId
 }
 function leituraNumerica(registro, tanqueId, sensorId) {
   const valor = registro?.sensores?.[tanqueId]?.[sensorId]
@@ -217,8 +307,12 @@ function atualizarHistoricoComparativo(pacote) {
   if (!sensoresRecebidos || typeof sensoresRecebidos !== 'object' || Array.isArray(sensoresRecebidos)) return false
 
   const atualizacoes = {}
+  const camposNivel = ['nivel', 'nivelPercentual', 'nivelPorcentagem', 'nivelAlto', 'nivelBaixo']
+  const leiturasNivelPlanas = sensoresRecebidos['tanque-ativos'] || (
+    camposNivel.some((campo) => sensoresRecebidos[campo] !== undefined) ? sensoresRecebidos : null
+  )
   for (const tanque of tanquesComparacao) {
-    const leituras = sensoresRecebidos[tanque.id]
+    const leituras = sensoresRecebidos[tanque.id] || (tanque.id === 'tanque-ativos' ? leiturasNivelPlanas : null)
     if (!leituras || typeof leituras !== 'object' || Array.isArray(leituras)) continue
 
     for (const sensor of ['turbidez', 'ph', 'temperatura']) {
@@ -229,10 +323,34 @@ function atualizarHistoricoComparativo(pacote) {
       atualizacoes[tanque.id] ||= {}
       atualizacoes[tanque.id][sensor] = valor
     }
-    const estadoNivel = estadoNivelLeituras(leituras)
+    const percentualNivel = percentualNivelExplicito(leituras)
+    if (percentualNivel !== null) {
+      atualizacoes[tanque.id] ||= {}
+      atualizacoes[tanque.id].nivelPercentual = percentualNivel
+    }
+    const estadoNivel = typeof leituras.nivel === 'number' ? null : normalizarEstadoNivel(leituras.nivel)
     if (estadoNivel) {
       atualizacoes[tanque.id] ||= {}
       atualizacoes[tanque.id].nivel = estadoNivel
+    }
+    const possuiLeituraDireta = percentualNivel !== null || estadoNivel !== null
+    const possuiContatos = ['nivelAlto', 'nivelBaixo'].some((sensor) => leituras[sensor] !== undefined)
+    if (possuiLeituraDireta || possuiContatos) {
+      atualizacoes[tanque.id] ||= {}
+      if (possuiLeituraDireta && !possuiContatos) {
+        atualizacoes[tanque.id].nivelAlto = null
+        atualizacoes[tanque.id].nivelBaixo = null
+      } else if (possuiContatos && !possuiLeituraDireta) {
+        atualizacoes[tanque.id].nivelPercentual = null
+        atualizacoes[tanque.id].nivel = null
+      }
+      if (possuiLeituraDireta && estadoNivel === null) atualizacoes[tanque.id].nivel = null
+    }
+    for (const sensor of ['nivelAlto', 'nivelBaixo']) {
+      if (leituras[sensor] === undefined) continue
+      const contato = switchAtivo(leituras[sensor])
+      atualizacoes[tanque.id] ||= {}
+      atualizacoes[tanque.id][sensor] = contato === null ? null : contato ? 'LIGADO' : 'DESLIGADO'
     }
   }
   if (!Object.keys(atualizacoes).length) return false
@@ -317,6 +435,55 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
             </div>
           </article>
         </div>
+
+        <div class="action-panel">
+          <div class="action-header">
+            <div>
+              <span class="section-kicker">ETA · PROCESSO</span>
+              <h3>Monitoramento de Equipamentos</h3>
+            </div>
+            <div class="mode-toggle-group">
+              <button type="button" class="mode-toggle" :class="{ active: modo === 'AUTOMÁTICO' }" :aria-pressed="modo === 'AUTOMÁTICO'" @click="mudarModo('AUTOMÁTICO')">Automático</button>
+              <button type="button" class="mode-toggle" :class="{ active: modo === 'MANUAL' }" :aria-pressed="modo === 'MANUAL'" @click="mudarModo('MANUAL')">Manual</button>
+              <button type="button" class="mode-toggle stop" :class="{ active: modo === 'PARADA' }" :aria-pressed="modo === 'PARADA'" @click="mudarModo('PARADA')">Parada total</button>
+            </div>
+          </div>
+
+          <div class="equipment-board" :class="{ 'controls-open': controlesEquipamentosAbertos }">
+            <div class="tank-control-grid">
+              <article v-for="tanque in tanquesPainel" :key="tanque.id" class="tank-control-card" :class="{ selected: tanqueSelecionadoId === tanque.id }">
+                <h4>{{ tanque.nome }}</h4>
+                <div class="tank-control-body">
+                  <button type="button" class="tank-vessel" :aria-expanded="tanqueSelecionadoId === tanque.id" :aria-label="`${tanque.nome} com ${tanque.percentualNivel}% de nível. ${tanqueSelecionadoId === tanque.id ? 'Ocultar' : 'Mostrar'} acionamentos`" @click="alternarControlesTanque(tanque.id)">
+                    <span class="tank-rim"></span><span class="tank-water" :style="{ height: `${tanque.percentualNivel}%` }"></span><span class="tank-base"></span>
+                  </button>
+                  <div class="tank-level-list">
+                    <button v-for="medicao in tanque.sensoresNivel" :key="medicao.chave" type="button" class="tank-level-item" :aria-label="`${medicao.nome} do tanque ${tanque.nome}: ${medicao.valor}. Abrir detalhes`" @click="abrirDetalhe(medicao, tanque)">
+                      <span class="tank-level-name"><i :class="{ active: medicao.valor === 'LIGADO' }"></i>{{ medicao.nome }}</span>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <div v-if="controlesEquipamentosAbertos" id="action-grid-equipamentos" class="action-grid">
+              <button v-for="equipamento in equipamentos" :key="equipamento.tag" type="button" class="action-card" :class="{ on: equipamento.ativo }" :disabled="!manual" :aria-pressed="equipamento.ativo" :aria-label="`${equipamento.nome}: ${equipamento.ativo ? 'ligado' : 'desligado'}`" :style="{ '--equipment-color': equipamento.cor }" @click="equipamentoToggle(equipamento)">
+                <div class="action-card-top"><h4>{{ equipamento.nome }}</h4></div>
+                <div class="equipment-art" :class="equipamento.tipo" aria-hidden="true">
+                  <template v-if="equipamento.tipo === 'pump'">
+                    <span class="pump-inlet"></span><span class="pump-body"><i></i></span><span class="pump-nozzle"></span><span class="pump-coupling"></span><span class="pump-motor"></span><span class="pump-foot"></span>
+                  </template>
+                  <template v-else-if="equipamento.tipo === 'doser'">
+                    <span class="doser-cap"></span><span class="doser-head"></span><span class="doser-neck"></span><span class="doser-container"><span></span></span><span class="doser-tube"></span>
+                  </template>
+                  <template v-else>
+                    <span class="valve-coil"></span><span class="valve-stem"></span><span class="valve-body"></span><span class="valve-pipe left"></span><span class="valve-pipe right"></span>
+                  </template>
+                </div>
+                <span class="equipment-state" :class="{ on: equipamento.ativo }"><span></span>{{ equipamento.ativo ? 'LIGADA' : 'DESLIGADA' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <div v-if="sensorSelecionado" class="metric-modal-overlay" tabindex="-1" @click="sensorSelecionado = null" @keydown.esc="sensorSelecionado = null">
           <section class="metric-modal" role="dialog" aria-modal="true" :aria-label="`Detalhes de ${sensorSelecionado.nome}`" @click.stop>
             <button type="button" class="modal-close" aria-label="Fechar detalhes" @click="sensorSelecionado = null">×</button>
@@ -335,9 +502,6 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
             </div>
           </section>
         </div>
-        <div class="section-heading process-heading"><div><span class="section-kicker">FLUXO DO PROCESSO</span><h2>ETA em operação</h2></div><span class="flow-legend">● Fluxo ativo</span></div>
-        <div class="process-panel"><div class="process-line"></div><div class="process-stages"><div class="stage"><div class="stage-icon pump">◉</div><span class="stage-index">01</span><strong>Captação</strong><small>Bomba B1 · ligada</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual" :class="{ full: estadoNivelAtual('agua-bruta') === 'CHEIO', empty: estadoNivelAtual('agua-bruta') === 'VAZIO' }"><span></span></div><span class="stage-index">02</span><strong>Água bruta</strong><small>{{ estadoNivelAtual('agua-bruta') }}</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon treatment">✦</div><span class="stage-index">03</span><strong>Dosagem</strong><small>D1 · D2 · D3 ativas</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon mixer">↻</div><span class="stage-index">04</span><strong>Floculação</strong><small>Agitador M1 · ligado</small><span class="flow-arrow">›</span></div><div class="stage"><div class="filter-visual"><span></span></div><span class="stage-index">05</span><strong>Filtração</strong><small>Pressão normal</small><span class="flow-arrow">›</span></div><div class="stage"><div class="stage-icon uv">UV</div><span class="stage-index">06</span><strong>Desinfecção</strong><small>UV · ativo</small><span class="flow-arrow">›</span></div><div class="stage"><div class="tank-visual treated" :class="{ full: estadoNivelAtual('agua-tratada') === 'CHEIO', empty: estadoNivelAtual('agua-tratada') === 'VAZIO' }"><span></span></div><span class="stage-index">07</span><strong>Água tratada</strong><small>{{ estadoNivelAtual('agua-tratada') }}</small></div></div></div>
-        <div class="lower-grid"><section class="panel-block"><div class="section-heading compact"><div><span class="section-kicker">ATUAÇÃO</span><h2>Equipamentos</h2></div><span class="manual-hint">{{ manual ? 'Comandos liberados' : 'Selecione MANUAL para comandar' }}</span></div><div class="equipment-grid"><button v-for="equipamento in equipamentos" :key="equipamento.tag" class="equipment-row" :class="{ on: equipamento.ativo }" :disabled="!manual" @click="equipamentoToggle(equipamento)"><span class="equipment-symbol">≋</span><span class="equipment-name"><strong>{{ equipamento.nome }}</strong><small>{{ equipamento.tag }}</small></span><span class="equipment-state">● {{ equipamento.estado }}</span></button></div></section><section class="panel-block mode-panel"><div class="section-heading compact"><div><span class="section-kicker">CONTROLE</span><h2>Modo de operação</h2></div><span class="lock-label">▣ Controle local</span></div><div class="mode-buttons"><button v-for="opcao in ['AUTOMÁTICO', 'MANUAL', 'PARADA']" :key="opcao" :class="{ selected: modo === opcao, stop: opcao === 'PARADA' }" @click="mudarModo(opcao)"><span>{{ opcao === 'AUTOMÁTICO' ? '▶' : opcao === 'MANUAL' ? '✋' : '■' }}</span>{{ opcao }}</button></div><div class="mode-description">● {{ modo === 'MANUAL' ? 'Operador no controle dos atuadores' : modo === 'PARADA' ? 'Atuadores em estado seguro' : 'ESP32 executando lógica de controle' }}</div></section></div>
       </section>
 
       <section v-else-if="pagina === 'historico'" class="page-content inner-page">
@@ -377,7 +541,72 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
         </div>
         <p v-if="notificacaoHistorico" class="history-notification" role="status">{{ notificacaoHistorico }}</p>
       </section>
-      <section v-else-if="pagina === 'alarmes'" class="page-content inner-page"><div class="page-title-row"><div><span class="section-kicker">EVENTOS DO SISTEMA</span><h2>Alarmes e ocorrências</h2><p>Prioridades operacionais e reconhecimento pelo operador.</p></div><div class="alarm-summary"><strong>{{ ativos.length }}</strong><span>ativos agora</span></div></div><div class="alarm-tabs"><button class="active">Ativos ({{ ativos.length }})</button><button>Reconhecidos</button><button>Histórico</button></div><div class="alarm-list"><div v-for="alarme in alarmes" :key="alarme.equipamento" class="alarm-row" :class="alarme.prioridade"><span class="alarm-icon">!</span><div><strong>{{ alarme.equipamento }}</strong><p>{{ alarme.descricao }}</p></div><span class="alarm-time">{{ alarme.hora }}</span><span class="priority-label">{{ alarme.prioridade }}</span><button v-if="alarme.ativo" class="ack-button" @click="reconhecer(alarme)">Reconhecer</button><span v-else class="acknowledged">Reconhecido</span></div></div></section>
+      <section v-else-if="pagina === 'alarmes'" class="page-content alarm-page">
+        <div class="alarm-header">
+          <div>
+            <h2>Alarmes e eventos</h2>
+            <p>Monitoramento da ETA</p>
+          </div>
+          <div class="alarm-counter-box">
+            <strong>{{ alarmesAtivos.length }}</strong>
+            <span>Ativos</span>
+          </div>
+        </div>
+
+        <div class="alarm-summary-grid">
+          <div v-for="item in alarmesResumo" :key="item.label" class="alarm-summary-card" :class="item.tone">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+
+        <div class="alarm-tabs" role="tablist" aria-label="Categorias de alarmes">
+          <button type="button" class="tab-button" :class="{ active: filtroAlarmes === 'ativos' }" @click="filtroAlarmes = 'ativos'">
+            Ativos ({{ alarmesAtivos.length }})
+          </button>
+          <button type="button" class="tab-button" :class="{ active: filtroAlarmes === 'historico' }" @click="filtroAlarmes = 'historico'">
+            Histórico
+          </button>
+        </div>
+
+        <div v-if="filtroAlarmes === 'ativos'" class="alarm-list">
+          <article v-for="alarme in alarmesAtivos" :key="alarme.title" class="alarm-item" :class="alarme.type">
+            <div class="alarm-icon" :class="alarme.type">{{ alarme.icon }}</div>
+            <div class="alarm-body">
+              <div class="alarm-line">
+                <div class="alarm-text">
+                  <strong>{{ alarme.title }}</strong>
+                  <span v-if="alarme.badge" class="alarm-badge">{{ alarme.badge }}</span>
+                </div>
+                <button type="button" class="ack-button" @click="desativarAlarme(alarme)">Desativar</button>
+              </div>
+              <div class="alarm-meta">
+                <span>{{ alarme.severity }} · {{ alarme.status }}</span>
+              </div>
+              <p>{{ alarme.description }}</p>
+            </div>
+          </article>
+        </div>
+
+        <div v-else class="alarm-list history-list">
+          <article v-for="alarme in alarmesHistorico" :key="alarme.title" class="alarm-item history-item" :class="alarme.type">
+            <div class="alarm-icon" :class="alarme.type">{{ alarme.icon }}</div>
+            <div class="alarm-body">
+              <div class="alarm-line">
+                <div class="alarm-text">
+                  <strong>{{ alarme.title }}</strong>
+                </div>
+                <button type="button" class="ack-button secondary" @click="reativarAlarme(alarme)">Reativar</button>
+              </div>
+              <div class="alarm-meta">
+                <span>{{ alarme.severity }} · {{ alarme.status }}</span>
+              </div>
+              <p>{{ alarme.description }}</p>
+            </div>
+          </article>
+          <div v-if="!alarmesHistorico.length" class="empty-history">Nenhum evento no histórico.</div>
+        </div>
+      </section>
       <section v-else class="page-content inner-page"><div class="page-title-row"><div><span class="section-kicker">INTEGRAÇÃO</span><h2>Configurações do sistema</h2><p>Parâmetros de comunicação e extensibilidade da planta.</p></div></div><div class="config-grid"><div class="config-card"><span class="config-icon">⇄</span><div><strong>WebSocket / MQTT bridge</strong><p>Canal bidirecional para telemetria e comandos</p></div><span class="config-status">AGUARDANDO</span></div><div class="config-card"><span class="config-icon">▣</span><div><strong>Banco de dados</strong><p>Histórico de medições, estados, eventos e alarmes</p></div><span class="config-status">PRONTO</span></div><div class="config-card"><span class="config-icon">＋</span><div><strong>Modelo modular</strong><p>Novos sensores e atuadores podem ser adicionados por ID</p></div><span class="config-status">ATIVO</span></div></div></section>
     </main>
   </div>
