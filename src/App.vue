@@ -17,6 +17,20 @@ const mensagemUsuarios = ref('')
 const temaEscuro = ref(true)
 const pagina = ref(window.location.hash.startsWith('#historico-') ? 'historico' : 'visao')
 const modo = ref('AUTOMÁTICO')
+const chaveHistoricoAcionamentos = 'supervisorio-historico-acionamentos-v1'
+function carregarHistoricoAcionamentos() {
+  try {
+    const salvo = JSON.parse(localStorage.getItem(chaveHistoricoAcionamentos))
+    return Array.isArray(salvo) ? salvo : []
+  } catch {
+    return []
+  }
+}
+const historicoAcionamentos = ref(carregarHistoricoAcionamentos())
+const filtroAcionamentos = ref('todos')
+const historicoAcionamentosFiltrado = computed(() => filtroAcionamentos.value === 'todos'
+  ? historicoAcionamentos.value
+  : historicoAcionamentos.value.filter((evento) => evento.tipo === filtroAcionamentos.value))
 const agora = ref(new Date())
 const periodo = ref(24)
 const wsStatus = ref('fallback')
@@ -153,11 +167,27 @@ function concluirLogin(sessao) {
   usuarioLogado.value = sessao.usuario
   perfilUsuario.value = sessao.perfil
   pagina.value = 'visao'
+  registrarEventoAcionamento({ tipo: 'modo', modo: modo.value, descricao: `Sessão iniciada em modo ${modo.value}` })
 }
 
 function navegar(paginaId) {
   if (paginaId === 'configuracoes' && !ehAdministrador.value) return
   pagina.value = paginaId
+}
+
+function registrarEventoAcionamento(evento) {
+  const registro = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: Date.now(),
+    usuario: usuarioLogado.value || 'Sistema',
+    ...evento,
+  }
+  historicoAcionamentos.value = [registro, ...historicoAcionamentos.value].slice(0, 500)
+  try {
+    localStorage.setItem(chaveHistoricoAcionamentos, JSON.stringify(historicoAcionamentos.value))
+  } catch {
+    historicoAcionamentos.value = historicoAcionamentos.value.slice(0, 100)
+  }
 }
 
 function persistirUsuarios() {
@@ -243,6 +273,13 @@ let socket
 function equipamentoToggle(equipamento) {
   if (!manual.value) return
   equipamento.ativo = !equipamento.ativo
+  registrarEventoAcionamento({
+    tipo: 'equipamento',
+    equipamento: equipamento.nome,
+    identificador: equipamento.tag,
+    estado: equipamento.ativo ? 'LIGADA' : 'DESLIGADA',
+    descricao: `${equipamento.nome} ${equipamento.ativo ? 'ligada' : 'desligada'} no modo manual`,
+  })
 }
 function mudarModo(novoModo) {
   if (modo.value === novoModo) return
@@ -258,6 +295,7 @@ function mudarModo(novoModo) {
     })
   }
   modo.value = novoModo
+  registrarEventoAcionamento({ tipo: 'modo', modo: novoModo, descricao: `Modo alterado de ${modoAnterior} para ${novoModo}` })
 }
 function reconhecer(alarme) { alarme.ativo = false }
 function sair() {
@@ -492,7 +530,11 @@ function iniciarWebSocket() {
     }
   } catch { wsStatus.value = 'offline' }
 }
-onMounted(() => { clock = window.setInterval(() => { agora.value = new Date() }, 1000); iniciarWebSocket() })
+onMounted(() => {
+  clock = window.setInterval(() => { agora.value = new Date() }, 1000)
+  if (usuarioLogado.value) registrarEventoAcionamento({ tipo: 'modo', modo: modo.value, descricao: `Sessão retomada em modo ${modo.value}` })
+  iniciarWebSocket()
+})
 onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notificacaoTimer); socket?.close() })
 </script>
 
@@ -626,6 +668,7 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
             :labels="grafico.labels"
             :datasets="grafico.datasets"
             :valores-atuais="grafico.valoresAtuais"
+            :tema-escuro="temaEscuro"
             :marcadores-visiveis="marcadoresVisiveis"
             :linhas-suaves="linhasSuaves"
           >
@@ -634,6 +677,36 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
             </template>
           </ComparisonChart>
         </div>
+        <section class="actuation-history" aria-labelledby="actuation-history-title">
+          <div class="actuation-history-header">
+            <div>
+              <span class="section-kicker">RASTREABILIDADE</span>
+              <h3 id="actuation-history-title">Histórico de acionamentos</h3>
+              <p>Trocas de modo e comandos manuais registrados por usuário.</p>
+            </div>
+            <span class="actuation-history-count">{{ historicoAcionamentosFiltrado.length }} registros</span>
+          </div>
+          <div class="actuation-history-filters" role="group" aria-label="Filtrar histórico de acionamentos">
+            <button v-for="filtro in [{ id: 'todos', nome: 'Todos' }, { id: 'modo', nome: 'Modos' }, { id: 'equipamento', nome: 'Equipamentos' }]" :key="filtro.id" type="button" :class="{ selected: filtroAcionamentos === filtro.id }" :aria-pressed="filtroAcionamentos === filtro.id" @click="filtroAcionamentos = filtro.id">{{ filtro.nome }}</button>
+          </div>
+          <div v-if="historicoAcionamentosFiltrado.length" class="actuation-history-list">
+            <article v-for="evento in historicoAcionamentosFiltrado" :key="evento.id" class="actuation-history-item" :class="evento.tipo">
+              <span class="actuation-event-marker" aria-hidden="true"></span>
+              <div class="actuation-event-main">
+                <div class="actuation-event-heading">
+                  <strong>{{ evento.tipo === 'modo' ? evento.modo : evento.equipamento }}</strong>
+                  <span class="actuation-event-kind">{{ evento.tipo === 'modo' ? 'Modo de operação' : evento.identificador }}</span>
+                </div>
+                <p>{{ evento.descricao }}</p>
+              </div>
+              <div class="actuation-event-meta">
+                <time :datetime="new Date(evento.timestamp).toISOString()">{{ new Date(evento.timestamp).toLocaleString('pt-BR') }}</time>
+                <span>Por <strong>{{ evento.usuario }}</strong></span>
+              </div>
+            </article>
+          </div>
+          <p v-else class="actuation-history-empty">Nenhum acionamento registrado neste filtro.</p>
+        </section>
         <p v-if="notificacaoHistorico" class="history-notification" role="status">{{ notificacaoHistorico }}</p>
       </section>
       <section v-else-if="pagina === 'alarmes'" class="page-content alarm-page">

@@ -18,6 +18,7 @@ const props = defineProps({
   labels: { type: Array, required: true },
   datasets: { type: Array, required: true },
   valoresAtuais: { type: Array, required: true },
+  temaEscuro: { type: Boolean, default: true },
   marcadoresVisiveis: { type: Boolean, default: false },
   linhasSuaves: { type: Boolean, default: true },
 })
@@ -42,6 +43,16 @@ function alternarSerie(indice) {
   const novosOcultos = new Set(ocultos.value)
   visivel ? novosOcultos.add(indice) : novosOcultos.delete(indice)
   ocultos.value = novosOcultos
+}
+
+function atualizarCoresDoTema() {
+  if (!chart) return
+  const muted = props.temaEscuro ? '#8ca8bb' : '#5e7483'
+  const line = props.temaEscuro ? '#183b56' : '#cfdae2'
+  chart.options.scales.x.ticks.color = muted
+  chart.options.scales.y.ticks.color = muted
+  chart.options.scales.y.grid.color = line
+  chart.update('none')
 }
 
 function atualizarGrafico() {
@@ -83,10 +94,12 @@ onMounted(() => {
       },
     },
   })
+  atualizarCoresDoTema()
   atualizarGrafico()
 })
 
 watch(() => [props.labels, props.datasets, props.marcadoresVisiveis, props.linhasSuaves], atualizarGrafico, { deep: true })
+watch(() => props.temaEscuro, atualizarCoresDoTema)
 onBeforeUnmount(() => chart?.destroy())
 </script>
 
