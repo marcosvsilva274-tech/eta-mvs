@@ -55,4 +55,9 @@ Para animar o nível da água, envie `nivelPercentual` ou `nivelPorcentagem` de 
 
 Sem esse formato, os gráficos exibem dados demonstrativos. Leituras recebidas são mantidas no armazenamento local do navegador, com limite de 2.000 registros; o payload antigo com sensores globais continua atualizando o resumo, mas não permite compará-los por tanque.
 
-O login atual usa credenciais demonstrativas locais e nao substitui autenticacao de producao.
+## Acesso demonstrativo
+
+- Administrador: `admin` / `admin123`
+- Operador: `operador` / `senha123`
+
+O administrador pode cadastrar usuários, escolher o perfil, trocar senhas e excluir contas em Configurações. As contas ficam salvas no `localStorage` do navegador. Este login é demonstrativo: em produção, senhas devem ser armazenadas com hash no servidor e permissões verificadas pelo backend.

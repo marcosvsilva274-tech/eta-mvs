@@ -2,8 +2,18 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import LoginForm from './components/LoginForm.vue'
 import ComparisonChart from './components/ComparisonChart.vue'
+import { carregarUsuarios, salvarUsuarios } from './auth.js'
 
 const usuarioLogado = ref(localStorage.getItem('usuario_logado'))
+const perfilUsuario = ref(localStorage.getItem('perfil_usuario') || (usuarioLogado.value === 'admin' ? 'admin' : 'operador'))
+const ehAdministrador = computed(() => perfilUsuario.value === 'admin')
+const usuarios = ref(carregarUsuarios())
+const novoUsuario = ref('')
+const novaSenha = ref('')
+const novoPerfil = ref('operador')
+const usuarioSenhaSelecionado = ref('')
+const senhaAtualizada = ref('')
+const mensagemUsuarios = ref('')
 const temaEscuro = ref(true)
 const pagina = ref(window.location.hash.startsWith('#historico-') ? 'historico' : 'visao')
 const modo = ref('AUTOMÁTICO')
@@ -26,7 +36,6 @@ const variaveisComparacao = [
   { id: 'turbidez', titulo: 'Comparativo de turbidez', unidade: 'NTU', tanqueIds: ['agua-bruta', 'tanque-ativos', 'agua-tratada'] },
   { id: 'ph', titulo: 'Comparativo de pH', unidade: 'pH', tanqueIds: ['tanque-ativos', 'agua-tratada'] },
   { id: 'temperatura', titulo: 'Comparativo de temperatura', unidade: '°C', tanqueIds: ['agua-bruta', 'agua-tratada'] },
-  { id: 'nivel', titulo: 'Nível dos reservatórios', unidade: 'Estado', tanqueIds: tanquesComparacao.map((tanque) => tanque.id) },
 ]
 const valoresDemonstrativos = {
   'agua-bruta': { turbidez: [1.2, 1.8, 1.3, 2.0, 1.5, 2.8, 2.4], temperatura: [24.3, 24.5, 24.6, 24.4, 24.8, 24.5, 24.3], nivel: ['CHEIO', 'CHEIO', 'CHEIO', 'VAZIO', 'VAZIO', 'CHEIO', 'CHEIO'] },
@@ -138,6 +147,80 @@ const alarmesResumo = computed(() => [
   { label: 'Críticos', value: alarmesPainel.value.filter((alarme) => alarme.type === 'critical' && alarme.ativo).length, tone: 'danger' },
 ])
 const paginas = [{ id: 'visao', icone: '▦', titulo: 'Visão geral' }, { id: 'historico', icone: '◷', titulo: 'Histórico' }, { id: 'alarmes', icone: '♢', titulo: 'Alarmes', badge: 2 }, { id: 'configuracoes', icone: '⚙', titulo: 'Configurações' }]
+const paginasVisiveis = computed(() => paginas.filter((item) => item.id !== 'configuracoes' || ehAdministrador.value))
+
+function concluirLogin(sessao) {
+  usuarioLogado.value = sessao.usuario
+  perfilUsuario.value = sessao.perfil
+  pagina.value = 'visao'
+}
+
+function navegar(paginaId) {
+  if (paginaId === 'configuracoes' && !ehAdministrador.value) return
+  pagina.value = paginaId
+}
+
+function persistirUsuarios() {
+  salvarUsuarios(usuarios.value)
+}
+
+function adicionarUsuario() {
+  const nome = novoUsuario.value.trim().toLowerCase()
+  if (nome.length < 3) {
+    mensagemUsuarios.value = 'O usuário deve ter pelo menos 3 caracteres.'
+    return
+  }
+  if (usuarios.value.some((conta) => conta.usuario === nome)) {
+    mensagemUsuarios.value = 'Este usuário já existe.'
+    return
+  }
+  if (novaSenha.value.length < 6) {
+    mensagemUsuarios.value = 'A senha deve ter pelo menos 6 caracteres.'
+    return
+  }
+
+  usuarios.value.push({ usuario: nome, senha: novaSenha.value, perfil: novoPerfil.value })
+  persistirUsuarios()
+  novoUsuario.value = ''
+  novaSenha.value = ''
+  novoPerfil.value = 'operador'
+  mensagemUsuarios.value = `Usuário ${nome} criado.`
+}
+
+function excluirUsuario(conta) {
+  if (conta.usuario === usuarioLogado.value) {
+    mensagemUsuarios.value = 'Não é possível excluir a própria conta durante a sessão.'
+    return
+  }
+  if (conta.perfil === 'admin' && usuarios.value.filter((usuario) => usuario.perfil === 'admin').length <= 1) {
+    mensagemUsuarios.value = 'Mantenha pelo menos um administrador no sistema.'
+    return
+  }
+  if (!window.confirm(`Excluir o usuário ${conta.usuario}?`)) return
+
+  usuarios.value = usuarios.value.filter((usuario) => usuario.usuario !== conta.usuario)
+  persistirUsuarios()
+  mensagemUsuarios.value = `Usuário ${conta.usuario} excluído.`
+}
+
+function abrirTrocaSenha(conta) {
+  usuarioSenhaSelecionado.value = usuarioSenhaSelecionado.value === conta.usuario ? '' : conta.usuario
+  senhaAtualizada.value = ''
+  mensagemUsuarios.value = ''
+}
+
+function trocarSenha(conta) {
+  if (senhaAtualizada.value.length < 6) {
+    mensagemUsuarios.value = 'A nova senha deve ter pelo menos 6 caracteres.'
+    return
+  }
+
+  conta.senha = senhaAtualizada.value
+  persistirUsuarios()
+  usuarioSenhaSelecionado.value = ''
+  senhaAtualizada.value = ''
+  mensagemUsuarios.value = `Senha de ${conta.usuario} atualizada.`
+}
 
 function desativarAlarme(alarme) {
   alarme.ativo = false
@@ -177,7 +260,13 @@ function mudarModo(novoModo) {
   modo.value = novoModo
 }
 function reconhecer(alarme) { alarme.ativo = false }
-function sair() { localStorage.removeItem('usuario_logado'); usuarioLogado.value = null }
+function sair() {
+  localStorage.removeItem('usuario_logado')
+  localStorage.removeItem('perfil_usuario')
+  usuarioLogado.value = null
+  perfilUsuario.value = null
+  pagina.value = 'visao'
+}
 function abrirDetalhe(medicao, tanque) {
   const historico = historicoComparativo.value
     .map((registro) => registro.sensores?.[tanque.id]?.[medicao.chave])
@@ -408,13 +497,13 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
 </script>
 
 <template>
-  <LoginForm v-if="!usuarioLogado" @login="usuarioLogado = $event" />
+  <LoginForm v-if="!usuarioLogado" @login="concluirLogin" />
   <div v-else class="scada-app" :class="{ 'light-theme': !temaEscuro }">
     <aside class="sidebar">
       <div class="brand-mark"><span class="brand-drop">◢</span><div><strong>ETA</strong><small>SUPERVISÓRIO</small></div></div>
       <div class="plant-label">Estação de Tratamento<br>de Água</div>
-      <nav class="main-nav"><button v-for="item in paginas" :key="item.id" class="nav-item" :class="{ active: pagina === item.id }" @click="pagina = item.id"><span class="nav-icon">{{ item.icone }}</span><span>{{ item.titulo }}</span><b v-if="item.badge" class="nav-badge">{{ item.badge }}</b></button></nav>
-      <div class="sidebar-footer"><span class="user-avatar">{{ usuarioLogado.slice(0, 1).toUpperCase() }}</span><div><strong>{{ usuarioLogado }}</strong><small>Operador</small></div><button class="icon-button" @click="sair">⇥</button></div>
+      <nav class="main-nav"><button v-for="item in paginasVisiveis" :key="item.id" class="nav-item" :class="{ active: pagina === item.id }" @click="navegar(item.id)"><span class="nav-icon">{{ item.icone }}</span><span>{{ item.titulo }}</span><b v-if="item.badge" class="nav-badge">{{ item.badge }}</b></button></nav>
+      <div class="sidebar-footer"><span class="user-avatar">{{ usuarioLogado.slice(0, 1).toUpperCase() }}</span><div><strong>{{ usuarioLogado }}</strong><small>{{ ehAdministrador ? 'Administrador' : 'Operador' }}</small></div><button class="icon-button" @click="sair">⇥</button></div>
     </aside>
     <main class="main-area">
       <header class="topbar"><div><span class="breadcrumb">SUPERVISÓRIO / {{ paginas.find((item) => item.id === pagina)?.titulo.toUpperCase() }}</span><h1>{{ pagina === 'visao' ? 'Visão geral da planta' : paginas.find((item) => item.id === pagina)?.titulo }}</h1></div><div class="topbar-actions"><div class="communication"><span class="live-dot" :class="wsStatus"></span><div><strong>{{ wsStatus === 'online' ? 'ESP32 ONLINE' : 'ESP32 OFFLINE' }}</strong><small>Backend conectado</small></div></div><div class="date-time"><strong>{{ hora }}</strong><span>{{ data }} · Quinta-feira</span></div><button class="theme-toggle" @click="temaEscuro = !temaEscuro">{{ temaEscuro ? '☀' : '☾' }}</button></div></header>
@@ -426,10 +515,16 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
           <article v-for="tanque in statusTanques" :key="tanque.nome" class="tank-status-item">
             <strong>{{ tanque.nome }}<span>● NORMAL</span></strong>
             <div class="tank-sensor-tags">
-              <button v-for="medicao in tanque.medicoes" :key="medicao.chave" type="button" class="tank-sensor-tag" :class="medicao.classe" :aria-label="`${medicao.nome} do tanque ${tanque.nome}: ${medicao.valor}. Abrir detalhes`" @click="abrirDetalhe(medicao, tanque)">
+              <button v-for="medicao in tanque.medicoes" :key="medicao.chave" type="button" class="tank-sensor-tag" :class="medicao.classe" :aria-label="medicao.chave.startsWith('nivel') ? `${medicao.nome} do tanque ${tanque.nome}: normal. Abrir detalhes` : `${medicao.nome} do tanque ${tanque.nome}: ${medicao.valor}. Abrir detalhes`" @click="abrirDetalhe(medicao, tanque)">
                 <span class="tag-icon">{{ medicao.icone }}</span>
-                <span>{{ medicao.nome }}</span>
-                <strong>{{ medicao.valor }}</strong>
+                <template v-if="medicao.chave.startsWith('nivel')">
+                  <span>Nível</span>
+                  <strong>{{ medicao.chave === 'nivelAlto' ? 'Alto' : 'Baixo' }}</strong>
+                </template>
+                <template v-else>
+                  <span>{{ medicao.nome }}</span>
+                  <strong>{{ medicao.valor }}</strong>
+                </template>
                 <small>{{ medicao.estado }}</small>
               </button>
             </div>
@@ -607,7 +702,55 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
           <div v-if="!alarmesHistorico.length" class="empty-history">Nenhum evento no histórico.</div>
         </div>
       </section>
-      <section v-else class="page-content inner-page"><div class="page-title-row"><div><span class="section-kicker">INTEGRAÇÃO</span><h2>Configurações do sistema</h2><p>Parâmetros de comunicação e extensibilidade da planta.</p></div></div><div class="config-grid"><div class="config-card"><span class="config-icon">⇄</span><div><strong>WebSocket / MQTT bridge</strong><p>Canal bidirecional para telemetria e comandos</p></div><span class="config-status">AGUARDANDO</span></div><div class="config-card"><span class="config-icon">▣</span><div><strong>Banco de dados</strong><p>Histórico de medições, estados, eventos e alarmes</p></div><span class="config-status">PRONTO</span></div><div class="config-card"><span class="config-icon">＋</span><div><strong>Modelo modular</strong><p>Novos sensores e atuadores podem ser adicionados por ID</p></div><span class="config-status">ATIVO</span></div></div></section>
+      <section v-else-if="pagina === 'configuracoes' && ehAdministrador" class="page-content inner-page">
+        <div class="page-title-row">
+          <div><span class="section-kicker">ADMINISTRAÇÃO</span><h2>Configurações do sistema</h2><p>Gerencie contas e parâmetros da estação.</p></div>
+        </div>
+
+        <section class="users-section" aria-labelledby="users-title">
+          <div class="users-section-heading">
+            <div><span class="section-kicker">ACESSO AO SISTEMA</span><h3 id="users-title">Usuários</h3></div>
+            <span class="users-count">{{ usuarios.length }} contas</span>
+          </div>
+
+          <form class="user-create-form" @submit.prevent="adicionarUsuario">
+            <label class="user-field"><span>Usuário</span><input v-model="novoUsuario" autocomplete="off" minlength="3" required placeholder="Nome de acesso"></label>
+            <label class="user-field"><span>Senha inicial</span><input v-model="novaSenha" type="password" autocomplete="new-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+            <label class="user-field"><span>Perfil</span><select v-model="novoPerfil"><option value="operador">Operador</option><option value="admin">Administrador</option></select></label>
+            <button type="submit" class="user-primary-button">Adicionar usuário</button>
+          </form>
+
+          <p v-if="mensagemUsuarios" class="users-feedback" role="status">{{ mensagemUsuarios }}</p>
+
+          <div class="users-table-wrap">
+            <table class="users-table">
+              <thead><tr><th>Usuário</th><th>Perfil</th><th>Ações</th></tr></thead>
+              <tbody>
+                <template v-for="conta in usuarios" :key="conta.usuario">
+                  <tr>
+                    <td><strong>{{ conta.usuario }}</strong><small v-if="conta.usuario === usuarioLogado">Sessão atual</small></td>
+                    <td><span class="user-role" :class="conta.perfil">{{ conta.perfil === 'admin' ? 'Administrador' : 'Operador' }}</span></td>
+                    <td class="user-actions">
+                      <button type="button" class="user-secondary-button" @click="abrirTrocaSenha(conta)">{{ usuarioSenhaSelecionado === conta.usuario ? 'Cancelar' : 'Trocar senha' }}</button>
+                      <button type="button" class="user-delete-button" :disabled="conta.usuario === usuarioLogado" @click="excluirUsuario(conta)">Excluir</button>
+                    </td>
+                  </tr>
+                  <tr v-if="usuarioSenhaSelecionado === conta.usuario" class="password-edit-row">
+                    <td colspan="3">
+                      <form class="password-edit-form" @submit.prevent="trocarSenha(conta)">
+                        <label class="user-field"><span>Nova senha para {{ conta.usuario }}</span><input v-model="senhaAtualizada" type="password" autocomplete="new-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
+                        <button type="submit" class="user-primary-button">Salvar senha</button>
+                      </form>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="config-grid"><div class="config-card"><span class="config-icon">⇄</span><div><strong>WebSocket / MQTT bridge</strong><p>Canal bidirecional para telemetria e comandos</p></div><span class="config-status">AGUARDANDO</span></div><div class="config-card"><span class="config-icon">▣</span><div><strong>Banco de dados</strong><p>Histórico de medições, estados, eventos e alarmes</p></div><span class="config-status">PRONTO</span></div><div class="config-card"><span class="config-icon">＋</span><div><strong>Modelo modular</strong><p>Novos sensores e atuadores podem ser adicionados por ID</p></div><span class="config-status">ATIVO</span></div></div>
+      </section>
     </main>
   </div>
 </template>
