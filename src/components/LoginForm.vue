@@ -1,23 +1,15 @@
 <script setup>
-// Importa a função ref do Vue para criar dados reativos
 import { ref } from 'vue'
 import { carregarUsuarios } from '../auth.js'
 
-// Define os eventos que este componente pode emitir para o componente pai
 const emit = defineEmits(['login'])
 
-// Dados reativos para armazenar o nome de usuário
 const username = ref('')
-// Dados reativos para armazenar a senha
 const password = ref('')
 const mostrarSenha = ref(false)
-// Dados reativos para armazenar mensagens de erro
 const erro = ref('')
 
-// Função para validar e realizar o login
-// Função para validar e realizar o login
 const fazerLogin = () => {
-  // Valida se os campos estão preenchidos
   if (!username.value || !password.value) {
     erro.value = 'Preencha usuário e senha'
     return
@@ -26,29 +18,14 @@ const fazerLogin = () => {
   const usuario = username.value.trim().toLowerCase()
   const credencial = carregarUsuarios().find((conta) => conta.usuario === usuario)
 
-  // Verifica as credenciais e o perfil associado
   if (credencial && credencial.senha === password.value) {
-    // Limpa qualquer mensagem de erro anterior
     erro.value = ''
-    // Armazena o usuário logado no localStorage
     localStorage.setItem('usuario_logado', usuario)
     localStorage.setItem('perfil_usuario', credencial.perfil)
     emit('login', { usuario, perfil: credencial.perfil })
   } else {
-    // Exibe mensagem de erro se as credenciais forem inválidas
     erro.value = 'Usuário ou senha incorretos'
-    // Limpa o campo de senha
     password.value = ''
-  }
-}
-
-// Função para permitir login ao pressionar a tecla Enter
-// Função para permitir login ao pressionar a tecla Enter
-const handleEnter = (event) => {
-  // Verifica se a tecla pressionada é Enter
-  if (event.key === 'Enter') {
-    // Chama a função de login
-    fazerLogin()
   }
 }
 </script>

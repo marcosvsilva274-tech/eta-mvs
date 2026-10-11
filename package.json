@@ -8,8 +8,9 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "dependencies": {
+"dependencies": {
     "chart.js": "^4.5.1",
+    "mqtt": "^5.10.0",
     "vue": "^3.5.40"
   },
   "devDependencies": {

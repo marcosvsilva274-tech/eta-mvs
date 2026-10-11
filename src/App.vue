@@ -1,158 +1,98 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+
+// Importação dos componentes visuais
 import LoginForm from './components/LoginForm.vue'
-import ComparisonChart from './components/ComparisonChart.vue'
+import BarraLateral from './components/common/BarraLateral.vue'
+import CabecalhoPrincipal from './components/common/CabecalhoPrincipal.vue'
+import FaixaStatus from './components/common/FaixaStatus.vue'
+
+import PainelStatusTanques from './components/overview/PainelStatusTanques.vue'
+import PainelEquipamentos from './components/overview/PainelEquipamentos.vue'
+import ModalMetrica from './components/overview/ModalMetrica.vue'
+
+import GraficoComparativo from './components/historico/GraficoComparativo.vue'
+import HistoricoAcionamentos from './components/historico/HistoricoAcionamentos.vue'
+
+import PainelAlarmes from './components/alarmes/PainelAlarmes.vue'
+
+import GestaoUsuarios from './components/configuracoes/GestaoUsuarios.vue'
+import GridStatusSistema from './components/configuracoes/GridStatusSistema.vue'
+
+// Importação das regras de negócio (Composables) e autenticação
+import { useMqtt } from './composables/useMqtt'
+import { useHistoricoAcionamentos } from './composables/useHistoricoAcionamentos'
+import { useTelemetria } from './composables/useTelemetria'
 import { carregarUsuarios, salvarUsuarios } from './auth.js'
 
+// --- ESTADO DE AUTENTICAÇÃO E NAVEGAÇÃO ---
 const usuarioLogado = ref(localStorage.getItem('usuario_logado'))
 const perfilUsuario = ref(localStorage.getItem('perfil_usuario') || (usuarioLogado.value === 'admin' ? 'admin' : 'operador'))
 const ehAdministrador = computed(() => perfilUsuario.value === 'admin')
 const usuarios = ref(carregarUsuarios())
-const novoUsuario = ref('')
-const novaSenha = ref('')
-const novoPerfil = ref('operador')
 const usuarioSenhaSelecionado = ref('')
-const senhaAtualizada = ref('')
 const mensagemUsuarios = ref('')
+
+// Configurações globais de tema e aba ativa
 const temaEscuro = ref(true)
 const pagina = ref(window.location.hash.startsWith('#historico-') ? 'historico' : 'visao')
 const modo = ref('AUTOMÁTICO')
-const chaveHistoricoAcionamentos = 'supervisorio-historico-acionamentos-v1'
-function carregarHistoricoAcionamentos() {
-  try {
-    const salvo = JSON.parse(localStorage.getItem(chaveHistoricoAcionamentos))
-    return Array.isArray(salvo) ? salvo : []
-  } catch {
-    return []
-  }
-}
-const historicoAcionamentos = ref(carregarHistoricoAcionamentos())
-const filtroAcionamentos = ref('todos')
-const historicoAcionamentosFiltrado = computed(() => filtroAcionamentos.value === 'todos'
-  ? historicoAcionamentos.value
-  : historicoAcionamentos.value.filter((evento) => evento.tipo === filtroAcionamentos.value))
+const manual = computed(() => modo.value === 'MANUAL')
+
+// Contador para ignorar temporariamente as telemetrias do modo logo após enviar um comando de alteração
+const ignorarTelemetriaModo = ref(0)
+
+// Relógio em tempo real
 const agora = ref(new Date())
-const periodo = ref(24)
-const wsStatus = ref('fallback')
-const sensores = ref([
-  { id: 'ph', nome: 'pH', valor: 7.12, unidade: 'pH', classe: 'cyan', icone: '🧪' },
-  { id: 'temperatura', nome: 'Temperatura', valor: 24.3, unidade: '°C', classe: 'green', icone: '🌡️' },
-  { id: 'turbidez', nome: 'Turbidez', valor: 0.82, unidade: 'NTU', classe: 'amber', icone: '💧' },
-])
-const sensorSelecionado = ref(null)
-const tanquesComparacao = [
-  { id: 'agua-bruta', nome: 'Água bruta', cor: '#16b9f4' },
-  { id: 'tanque-ativos', nome: 'Tanque de ativos', cor: '#19e69a' },
-  { id: 'agua-tratada', nome: 'Água tratada', cor: '#f5b544' },
-  { id: 'efluentes', nome: 'Efluentes', cor: '#ff7185' },
-]
-const variaveisComparacao = [
-  { id: 'turbidez', titulo: 'Comparativo de turbidez', unidade: 'NTU', tanqueIds: ['agua-bruta', 'tanque-ativos', 'agua-tratada'] },
-  { id: 'ph', titulo: 'Comparativo de pH', unidade: 'pH', tanqueIds: ['tanque-ativos', 'agua-tratada'] },
-  { id: 'temperatura', titulo: 'Comparativo de temperatura', unidade: '°C', tanqueIds: ['agua-bruta', 'agua-tratada'] },
-]
-const valoresDemonstrativos = {
-  'agua-bruta': { turbidez: [1.2, 1.8, 1.3, 2.0, 1.5, 2.8, 2.4], temperatura: [24.3, 24.5, 24.6, 24.4, 24.8, 24.5, 24.3], nivel: ['CHEIO', 'CHEIO', 'CHEIO', 'VAZIO', 'VAZIO', 'CHEIO', 'CHEIO'] },
-  'tanque-ativos': { turbidez: [4.4, 3.8, 3.5, 2.9, 2.5, 2.2, 2.0], ph: [7.1, 7.0, 7.2, 7.1, 7.2, 7.1, 7.1], nivel: ['VAZIO', 'VAZIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO'] },
-  'agua-tratada': { turbidez: [0.8, 0.7, 0.9, 0.6, 0.5, 0.7, 0.8], ph: [7.2, 7.2, 7.1, 7.2, 7.1, 7.2, 7.2], temperatura: [24.3, 24.2, 24.4, 24.3, 24.5, 24.4, 24.3], nivel: ['CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO', 'CHEIO'] },
-  efluentes: { nivel: ['VAZIO', 'VAZIO', 'VAZIO', 'CHEIO', 'VAZIO', 'VAZIO', 'CHEIO'] },
-}
-const chaveHistorico = 'supervisorio-historico-comparativo-v1'
-function criarHistoricoDemonstrativo() {
-  return Array.from({ length: 7 }, (_, indice) => ({
-    timestamp: Date.now() - (6 - indice) * 4 * 60 * 60 * 1000,
-    sensores: Object.fromEntries(tanquesComparacao.map((tanque) => [
-      tanque.id,
-      Object.fromEntries(Object.entries(valoresDemonstrativos[tanque.id]).map(([sensor, leituras]) => [sensor, leituras[indice]])),
-    ])),
-  }))
-}
-function carregarHistoricoSalvo() {
-  try {
-    const salvo = JSON.parse(localStorage.getItem(chaveHistorico))
-    return Array.isArray(salvo) && salvo.length ? salvo : null
-  } catch {
-    return null
-  }
-}
-const historicoSalvo = carregarHistoricoSalvo()
-const historicoComparativo = ref(historicoSalvo || criarHistoricoDemonstrativo())
-const origemHistorico = ref(historicoSalvo ? 'local' : 'demonstrativo')
-const marcadoresVisiveis = ref(false)
-const linhasSuaves = ref(true)
-const notificacaoHistorico = ref('')
-const descricaoOrigemHistorico = computed(() => origemHistorico.value === 'websocket'
-  ? 'Recebendo dados por WebSocket'
-  : origemHistorico.value === 'local'
-    ? 'Histórico salvo neste navegador'
-    : 'Valores demonstrativos')
-const graficosComparativos = computed(() => {
-  const limite = Date.now() - periodo.value * 60 * 60 * 1000
-  const registros = historicoComparativo.value.filter((registro) => registro.timestamp >= limite)
+const hora = computed(() => agora.value.toLocaleTimeString('pt-BR'))
+const data = computed(() => agora.value.toLocaleDateString('pt-BR'))
 
-  return variaveisComparacao.map((variavel) => ({
-    ...variavel,
-    labels: registros.map((registro) => new Date(registro.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })),
-    datasets: variavel.tanqueIds.map((tanqueId) => {
-      const tanque = tanquesComparacao.find((item) => item.id === tanqueId)
-      return {
-        label: tanque.nome,
-        data: registros.map((registro) => valorDoGrafico(registro, tanqueId, variavel.id)),
-        borderColor: tanque.cor,
-        backgroundColor: tanque.cor,
-        spanGaps: false,
-      }
-    }),
-    valoresAtuais: variavel.tanqueIds.map((tanqueId) => {
-      const tanque = tanquesComparacao.find((item) => item.id === tanqueId)
-      const registro = [...historicoComparativo.value].reverse().find((item) => valorDoGrafico(item, tanqueId, variavel.id) !== null)
-      const valor = registro
-        ? variavel.id === 'nivel' ? estadoNivelRegistro(registro, tanqueId) : leituraNumerica(registro, tanqueId, variavel.id)
-        : null
-      return { ...tanque, valor }
-    }),
-  }))
-})
-const sensoresPorTanque = {
-  'agua-bruta': ['temperatura', 'nivelAlto', 'nivelBaixo'],
-  'tanque-ativos': ['turbidez', 'ph', 'nivelAlto', 'nivelBaixo'],
-  'agua-tratada': ['temperatura', 'turbidez', 'ph', 'nivelAlto', 'nivelBaixo'],
-  efluentes: ['nivelAlto', 'nivelBaixo'],
-}
-const statusTanques = computed(() => tanquesComparacao.map((tanque) => ({
-  id: tanque.id,
-  nome: tanque.nome,
-  medicoes: sensoresPorTanque[tanque.id].map((sensorId) => {
-    const sensor = sensores.value.find((item) => item.id === sensorId)
-    const nome = sensor?.nome || (sensorId === 'nivelAlto' ? 'Nível alto' : 'Nível baixo')
-    const icone = sensor?.icone || (sensorId === 'nivelAlto' ? '🔵' : '⚪')
-    const valorAtual = valorSensorPorTanque(tanque.id, sensorId, sensor?.valor)
-    const valor = typeof valorAtual === 'number' && sensor
-      ? `${valorAtual.toFixed(sensorId === 'temperatura' ? 1 : 2).replace('.', ',')} ${sensor.unidade}`.trim()
-      : valorAtual
+// Mapeamento das páginas para a barra lateral
+const paginas = [
+  { id: 'visao', icone: '▦', titulo: 'Visão geral' },
+  { id: 'historico', icone: '◷', titulo: 'Histórico' },
+  { id: 'alarmes', icone: '♢', titulo: 'Alarmes', badge: 0 },
+  { id: 'configuracoes', icone: '⚙', titulo: 'Configurações' }
+]
+const paginasVisiveis = computed(() => paginas.filter((item) => item.id !== 'configuracoes' || ehAdministrador.value))
 
-    return { chave: sensorId, nome, icone, valor, estado: 'NORMAL', estadoClasse: 'good', classe: sensor?.classe || 'blue' }
-  }),
-})))
+// --- INICIALIZAÇÃO DOS COMPOSABLES ---
+const { historicoAcionamentosFiltrado, filtroAcionamentos, registrarEventoAcionamento } = useHistoricoAcionamentos(() => usuarioLogado.value)
+const {
+  sensores,
+  origemHistorico,
+  periodo,
+  marcadoresVisiveis,
+  linhasSuaves,
+  notificacaoHistorico,
+  descricaoOrigemHistorico,
+  statusTanques,
+  tanquesPainel,
+  graficosComparativos,
+  atualizarHistoricoComparativo,
+  compartilharGrafico
+} = useTelemetria()
+
+// Mapeamento completo dos 11 atuadores da planta, vinculando tags JSON, comandos MQTT e tanques do popup
 const equipamentos = ref([
-  { nome: 'Bomba 1', tag: 'B1', tipo: 'pump', cor: '#078ee8', ativo: true },
-  { nome: 'Dosador 1', tag: 'D1', tipo: 'doser', cor: '#ffc52e', ativo: true },
-  { nome: 'Dosador 2', tag: 'D2', tipo: 'doser', cor: '#25d47d', ativo: true },
-  { nome: 'Dosador 3', tag: 'D3', tipo: 'doser', cor: '#078ee8', ativo: true },
-  { nome: 'Solenoide 1', tag: 'S1', tipo: 'solenoid', cor: '#e8ad45', ativo: true },
-  { nome: 'Solenoide 2', tag: 'S2', tipo: 'solenoid', cor: '#e8ad45', ativo: true },
+  { nome: 'Bomba Inicial (PM1)', tag: 'bomba_pm1', comando: 'PM1', tipo: 'pump', cor: '#078ee8', ativo: false, ignorarTelemetria: 0, tanqueId: 'agua-bruta' },
+  { nome: 'Bomba Ativos (PM2)', tag: 'bomba_pm2', comando: 'PM2', tipo: 'pump', cor: '#078ee8', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Bomba Efluentes (PM3)', tag: 'bomba_pm3', comando: 'PM3', tipo: 'pump', cor: '#078ee8', ativo: false, ignorarTelemetria: 0, tanqueId: 'efluentes' },
+  { nome: 'Solenoide Efluentes (SV1)', tag: 'solenoide_hvk1', comando: 'SV1', tipo: 'solenoid', cor: '#e8ad45', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Solenoide Final (SV2)', tag: 'solenoide_hvk2', comando: 'SV2', tipo: 'solenoid', cor: '#e8ad45', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Mexedor Ativos (RM1)', tag: 'mexedor_rm1', comando: 'RM1', tipo: 'mixer', cor: '#19e69a', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Mexedor Final (RM2)', tag: 'mexedor_rm2', comando: 'RM2', tipo: 'mixer', cor: '#19e69a', ativo: false, ignorarTelemetria: 0, tanqueId: 'agua-tratada' },
+  { nome: 'Dosador Coagulante (DM1)', tag: 'dosador_fecl3_dm1', comando: 'DM1', tipo: 'doser', cor: '#ffc52e', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Dosador Alcalinizante (DM2)', tag: 'dosador_caco3_dm2', comando: 'DM2', tipo: 'doser', cor: '#25d47d', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Dosador Sanitizante (DM3)', tag: 'dosador_naclo_dm3', comando: 'DM3', tipo: 'doser', cor: '#078ee8', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
+  { nome: 'Lâmpada UV (H1)', tag: 'lampada_uv', comando: 'H1', tipo: 'solenoid', cor: '#a855f7', ativo: false, ignorarTelemetria: 0, tanqueId: 'agua-tratada' },
 ])
-const alarmes = ref([
-  { prioridade: 'alta', equipamento: 'Comunicação', descricao: 'Última resposta do ESP32 há 12 segundos', hora: '14:26:19', ativo: true },
-  { prioridade: 'media', equipamento: 'Reservatório tratado', descricao: 'Nível acima do limite de atenção (85%)', hora: '14:20:44', ativo: true },
-  { prioridade: 'baixa', equipamento: 'Filtro', descricao: 'Manutenção preventiva programada', hora: '12:00:00', ativo: false },
-])
+
+let estadosAutomaticos = new Map()
+
+// --- ESTADO DOS ALARMES ---
+const alarmesPainel = ref([])
 const filtroAlarmes = ref('ativos')
-const alarmesPainel = ref([
-  { title: 'Nível alto — Tanque de ativos', severity: 'Crítico', status: 'Ativo', description: 'Exemplo: nível acima do limite configurado.', badge: 'Novo', type: 'critical', icon: '⚠', ativo: true },
-  { title: 'Temperatura fora da faixa', severity: 'Atenção', status: 'Ativo', description: 'Exemplo: leitura fora dos limites configurados.', badge: '', type: 'warning', icon: '⚡', ativo: true },
-  { title: 'Falha de comunicação MQTT', severity: 'Comunicação', status: 'Histórico', description: 'Perda de atualização dos dados do supervisório.', badge: '', type: 'info', icon: '◔', ativo: false },
-])
 const alarmesAtivos = computed(() => alarmesPainel.value.filter((alarme) => alarme.ativo))
 const alarmesHistorico = computed(() => alarmesPainel.value.filter((alarme) => !alarme.ativo))
 const alarmesResumo = computed(() => [
@@ -160,9 +100,97 @@ const alarmesResumo = computed(() => [
   { label: 'Atenção', value: alarmesPainel.value.filter((alarme) => alarme.type === 'warning' && alarme.ativo).length, tone: 'warning' },
   { label: 'Críticos', value: alarmesPainel.value.filter((alarme) => alarme.type === 'critical' && alarme.ativo).length, tone: 'danger' },
 ])
-const paginas = [{ id: 'visao', icone: '▦', titulo: 'Visão geral' }, { id: 'historico', icone: '◷', titulo: 'Histórico' }, { id: 'alarmes', icone: '♢', titulo: 'Alarmes', badge: 2 }, { id: 'configuracoes', icone: '⚙', titulo: 'Configurações' }]
-const paginasVisiveis = computed(() => paginas.filter((item) => item.id !== 'configuracoes' || ehAdministrador.value))
 
+// Atualiza a badge do menu lateral conforme quantidade de alarmes pendentes
+const paginasComBadge = computed(() => paginasVisiveis.value.map((p) => p.id === 'alarmes' ? { ...p, badge: alarmesAtivos.value.length } : p))
+
+/**
+ * Mapeia e insere alertas recebidos no padrão "Código;Severidade;Descrição"
+ */
+function processarAlertaRecebido(alerta) {
+  const mapaSeveridade = {
+    0: { severity: 'Aviso', type: 'info', icon: 'ℹ' },
+    1: { severity: 'Atenção', type: 'warning', icon: '⚡' },
+    2: { severity: 'Crítico', type: 'critical', icon: '⚠' }
+  }
+
+  const infoSeveridade = mapaSeveridade[alerta.severidade] || mapaSeveridade[0]
+  const indexExistente = alarmesPainel.value.findIndex((a) => a.codigo === alerta.codigo)
+
+  // Atualiza alarme se ele já existia ou adiciona um novo no topo da lista
+  if (indexExistente !== -1) {
+    alarmesPainel.value[indexExistente] = {
+      ...alarmesPainel.value[indexExistente],
+      title: alerta.descricao,
+      severity: infoSeveridade.severity,
+      type: infoSeveridade.type,
+      icon: infoSeveridade.icon,
+      description: `Código #${alerta.codigo} — Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`,
+      ativo: true,
+      status: 'Ativo'
+    }
+  } else {
+    alarmesPainel.value.unshift({
+      codigo: alerta.codigo,
+      title: alerta.descricao,
+      severity: infoSeveridade.severity,
+      status: 'Ativo',
+      description: `Código #${alerta.codigo} — Recebido às ${new Date().toLocaleTimeString('pt-BR')}`,
+      badge: 'Novo',
+      type: infoSeveridade.type,
+      icon: infoSeveridade.icon,
+      ativo: true
+    })
+  }
+}
+
+// --- CONEXÃO COM O BROKER MQTT E TRATAMENTO DE TELEMETRIA ---
+const { mqttStatus, publicarComando } = useMqtt(
+  // 1. Processamento de Telemetria
+  (pacote) => {
+    atualizarHistoricoComparativo(pacote)
+
+    // Sincroniza o modo de operação caso não esteja no período de trava (delay)
+    if (pacote.modo_operacao) {
+      if (ignorarTelemetriaModo.value > 0) {
+        ignorarTelemetriaModo.value-- // Decrementa 1 das 2 leituras ignoradas
+      } else {
+        const modoMapeado = pacote.modo_operacao.toUpperCase()
+        if (['AUTOMÁTICO', 'AUTOMATICO'].includes(modoMapeado)) modo.value = 'AUTOMÁTICO'
+        else if (modoMapeado === 'MANUAL') modo.value = 'MANUAL'
+        else if (['PARADA', 'EMERGENCIA'].includes(modoMapeado)) modo.value = 'PARADA'
+      }
+    }
+
+    // Consolida todos os tanques do JSON em um objeto único de checagem
+    const todosDispositivos = {
+      ...pacote.tanque_armazenamento,
+      ...pacote.tanque_ativos,
+      ...pacote.tanque_efluentes,
+      ...pacote.tanque_final
+    }
+
+    // Atualiza estado visual dos equipamentos ignorando o piscar durante a trava manual
+    equipamentos.value.forEach((equipamento) => {
+      if (todosDispositivos[equipamento.tag] !== undefined) {
+        if (equipamento.ignorarTelemetria > 0) {
+          equipamento.ignorarTelemetria-- // Decrementa a trava temporária
+        } else {
+          equipamento.ativo = Boolean(todosDispositivos[equipamento.tag])
+        }
+      }
+    })
+  },
+  // 2. Processamento de Alertas
+  (alerta) => {
+    processarAlertaRecebido(alerta)
+  }
+)
+
+const sensorSelecionado = ref(null)
+const tanqueSelecionadoId = ref(null)
+
+// --- AÇÕES DO USUÁRIO ---
 function concluirLogin(sessao) {
   usuarioLogado.value = sessao.usuario
   perfilUsuario.value = sessao.perfil
@@ -175,115 +203,21 @@ function navegar(paginaId) {
   pagina.value = paginaId
 }
 
-function registrarEventoAcionamento(evento) {
-  const registro = {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    timestamp: Date.now(),
-    usuario: usuarioLogado.value || 'Sistema',
-    ...evento,
-  }
-  historicoAcionamentos.value = [registro, ...historicoAcionamentos.value].slice(0, 500)
-  try {
-    localStorage.setItem(chaveHistoricoAcionamentos, JSON.stringify(historicoAcionamentos.value))
-  } catch {
-    historicoAcionamentos.value = historicoAcionamentos.value.slice(0, 100)
-  }
+function sair() {
+  localStorage.removeItem('usuario_logado')
+  localStorage.removeItem('perfil_usuario')
+  usuarioLogado.value = null
+  perfilUsuario.value = null
+  pagina.value = 'visao'
 }
 
-function persistirUsuarios() {
-  salvarUsuarios(usuarios.value)
-}
-
-function adicionarUsuario() {
-  const nome = novoUsuario.value.trim().toLowerCase()
-  if (nome.length < 3) {
-    mensagemUsuarios.value = 'O usuário deve ter pelo menos 3 caracteres.'
-    return
-  }
-  if (usuarios.value.some((conta) => conta.usuario === nome)) {
-    mensagemUsuarios.value = 'Este usuário já existe.'
-    return
-  }
-  if (novaSenha.value.length < 6) {
-    mensagemUsuarios.value = 'A senha deve ter pelo menos 6 caracteres.'
-    return
-  }
-
-  usuarios.value.push({ usuario: nome, senha: novaSenha.value, perfil: novoPerfil.value })
-  persistirUsuarios()
-  novoUsuario.value = ''
-  novaSenha.value = ''
-  novoPerfil.value = 'operador'
-  mensagemUsuarios.value = `Usuário ${nome} criado.`
-}
-
-function excluirUsuario(conta) {
-  if (conta.usuario === usuarioLogado.value) {
-    mensagemUsuarios.value = 'Não é possível excluir a própria conta durante a sessão.'
-    return
-  }
-  if (conta.perfil === 'admin' && usuarios.value.filter((usuario) => usuario.perfil === 'admin').length <= 1) {
-    mensagemUsuarios.value = 'Mantenha pelo menos um administrador no sistema.'
-    return
-  }
-  if (!window.confirm(`Excluir o usuário ${conta.usuario}?`)) return
-
-  usuarios.value = usuarios.value.filter((usuario) => usuario.usuario !== conta.usuario)
-  persistirUsuarios()
-  mensagemUsuarios.value = `Usuário ${conta.usuario} excluído.`
-}
-
-function abrirTrocaSenha(conta) {
-  usuarioSenhaSelecionado.value = usuarioSenhaSelecionado.value === conta.usuario ? '' : conta.usuario
-  senhaAtualizada.value = ''
-  mensagemUsuarios.value = ''
-}
-
-function trocarSenha(conta) {
-  if (senhaAtualizada.value.length < 6) {
-    mensagemUsuarios.value = 'A nova senha deve ter pelo menos 6 caracteres.'
-    return
-  }
-
-  conta.senha = senhaAtualizada.value
-  persistirUsuarios()
-  usuarioSenhaSelecionado.value = ''
-  senhaAtualizada.value = ''
-  mensagemUsuarios.value = `Senha de ${conta.usuario} atualizada.`
-}
-
-function desativarAlarme(alarme) {
-  alarme.ativo = false
-  alarme.status = 'Histórico'
-}
-
-function reativarAlarme(alarme) {
-  alarme.ativo = true
-  alarme.status = 'Ativo'
-  filtroAlarmes.value = 'ativos'
-}
-const hora = computed(() => agora.value.toLocaleTimeString('pt-BR'))
-const data = computed(() => agora.value.toLocaleDateString('pt-BR'))
-const ativos = computed(() => alarmes.value.filter((alarme) => alarme.ativo))
-const manual = computed(() => modo.value === 'MANUAL')
-let estadosAutomaticos = new Map()
-let clock
-let socket
-
-function equipamentoToggle(equipamento) {
-  if (!manual.value) return
-  equipamento.ativo = !equipamento.ativo
-  registrarEventoAcionamento({
-    tipo: 'equipamento',
-    equipamento: equipamento.nome,
-    identificador: equipamento.tag,
-    estado: equipamento.ativo ? 'LIGADA' : 'DESLIGADA',
-    descricao: `${equipamento.nome} ${equipamento.ativo ? 'ligada' : 'desligada'} no modo manual`,
-  })
-}
+/**
+ * Altera o modo de operação e envia o comando via MQTT
+ */
 function mudarModo(novoModo) {
   if (modo.value === novoModo) return
   const modoAnterior = modo.value
+
   if (modoAnterior === 'AUTOMÁTICO' && ['MANUAL', 'PARADA'].includes(novoModo)) {
     estadosAutomaticos = new Map(equipamentos.value.map((equipamento) => [equipamento.tag, equipamento.ativo]))
   }
@@ -294,359 +228,195 @@ function mudarModo(novoModo) {
       if (estadosAutomaticos.has(equipamento.tag)) equipamento.ativo = estadosAutomaticos.get(equipamento.tag)
     })
   }
+
   modo.value = novoModo
+  ignorarTelemetriaModo.value = 2 // Define delay de 2 telemetrias para o modo
+
+  const comandoMqtt = novoModo === 'AUTOMÁTICO' ? 'AUTOMATICO' : novoModo === 'MANUAL' ? 'MANUAL' : 'EMERGENCIA'
+  publicarComando(comandoMqtt)
+
   registrarEventoAcionamento({ tipo: 'modo', modo: novoModo, descricao: `Modo alterado de ${modoAnterior} para ${novoModo}` })
 }
-function reconhecer(alarme) { alarme.ativo = false }
-function sair() {
-  localStorage.removeItem('usuario_logado')
-  localStorage.removeItem('perfil_usuario')
-  usuarioLogado.value = null
-  perfilUsuario.value = null
-  pagina.value = 'visao'
-}
-function abrirDetalhe(medicao, tanque) {
-  const historico = historicoComparativo.value
-    .map((registro) => registro.sensores?.[tanque.id]?.[medicao.chave])
-    .filter((valor) => valor !== null && valor !== undefined && valor !== '')
 
+/**
+ * Alterna estado de um equipamento manual e publica a tag no MQTT
+ */
+function equipamentoToggle(equipamento) {
+  if (!manual.value) return
+  equipamento.ativo = !equipamento.ativo
+  equipamento.ignorarTelemetria = 2 // Trava o equipamento específico por 2 leituras
+
+  publicarComando(equipamento.comando)
+
+  registrarEventoAcionamento({
+    tipo: 'equipamento',
+    equipamento: equipamento.nome,
+    identificador: equipamento.tag,
+    estado: equipamento.ativo ? 'LIGADA' : 'DESLIGADA',
+    descricao: `${equipamento.nome} ${equipamento.ativo ? 'ligada' : 'desligada'} no modo manual`,
+  })
+}
+
+/**
+ * Desativa um alarme ativo e envia "alerta/codigo" para o broker
+ */
+function desativarAlarme(alarme) {
+  alarme.ativo = false
+  alarme.status = 'Histórico'
+
+  if (alarme.codigo) {
+    publicarComando(`alerta/${alarme.codigo}`)
+  }
+}
+
+function reativarAlarme(alarme) {
+  alarme.ativo = true
+  alarme.status = 'Ativo'
+  filtroAlarmes.value = 'ativos'
+}
+
+function abrirDetalhe(medicao, tanque) {
   sensorSelecionado.value = {
     ...medicao,
     tanque: tanque.nome,
     ultimaAtualizacao: hora.value,
     modo: modo.value,
-    historico: historico.length ? historico.slice(-5) : [medicao.valor],
+    historico: [medicao.valor]
   }
 }
-function valorSensorPorTanque(tanqueId, sensorId, valorPadrao) {
-  for (const registro of [...historicoComparativo.value].reverse()) {
-    const leitura = registro.sensores?.[tanqueId]?.[sensorId]
-    if (sensorId === 'nivelAlto' || sensorId === 'nivelBaixo') {
-      const contato = switchAtivo(leitura)
-      if (contato !== null) return contato ? 'LIGADO' : 'DESLIGADO'
-      const estado = estadoNivelRegistro(registro, tanqueId)
-      if (estado) return sensorId === 'nivelAlto' ? (estado === 'CHEIO' ? 'LIGADO' : 'DESLIGADO') : (estado === 'VAZIO' ? 'LIGADO' : 'DESLIGADO')
-      const percentual = percentualNivelLeituras(registro.sensores?.[tanqueId])
-      if (percentual !== null) return sensorId === 'nivelAlto' ? (percentual >= 80 ? 'LIGADO' : 'DESLIGADO') : (percentual <= 20 ? 'LIGADO' : 'DESLIGADO')
-    }
-    if (leitura !== null && leitura !== undefined && leitura !== '') return leitura
-  }
-  if (sensorId === 'nivelAlto' || sensorId === 'nivelBaixo') return '—'
-  return valorPadrao ?? '—'
-}
-function normalizarEstadoNivel(valor) {
-  const estado = String(valor ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
-  if (['CHEIO', 'FULL', 'TRUE', '1'].includes(estado)) return 'CHEIO'
-  if (['VAZIO', 'EMPTY', 'FALSE', '0'].includes(estado)) return 'VAZIO'
-  return null
-}
-function switchAtivo(valor) {
-  const estado = String(valor ?? '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
-  if (['LIGADO', 'ON', 'TRUE', '1'].includes(estado)) return true
-  if (['DESLIGADO', 'OFF', 'FALSE', '0'].includes(estado)) return false
-  return null
-}
-function normalizarPercentualNivel(valor) {
-  if (typeof valor !== 'number' && typeof valor !== 'string') return null
-  const texto = String(valor).trim().replace(/\s*%$/, '').replace(',', '.')
-  if (!/^\d+(\.\d+)?$/.test(texto)) return null
-  const percentual = Number(texto)
-  return Number.isFinite(percentual) ? Math.max(0, Math.min(100, percentual)) : null
-}
-function percentualNivelExplicito(leituras) {
-  const percentualRecebido = leituras?.nivelPercentual ?? leituras?.nivelPorcentagem
-  const percentual = normalizarPercentualNivel(percentualRecebido)
-  if (percentual !== null) return percentual
 
-  const nivel = leituras?.nivel
-  if (typeof nivel === 'number') return normalizarPercentualNivel(nivel)
-  const estado = normalizarEstadoNivel(nivel)
-  if (estado === 'CHEIO') return 90
-  if (estado === 'VAZIO') return 8
-  return normalizarPercentualNivel(nivel)
-}
-function percentualNivelLeituras(leituras) {
-  const percentual = percentualNivelExplicito(leituras)
-  if (percentual !== null) return percentual
-
-  const nivelAlto = switchAtivo(leituras?.nivelAlto)
-  const nivelBaixo = switchAtivo(leituras?.nivelBaixo)
-  if (nivelAlto === true) return 90
-  if (nivelBaixo === true) return 8
-  if (nivelAlto === false || nivelBaixo === false) return 50
-  return null
-}
-function estadoNivelLeituras(leituras) {
-  const estadoDireto = typeof leituras?.nivel === 'number' ? null : normalizarEstadoNivel(leituras?.nivel)
-  if (estadoDireto) return estadoDireto
-  if (switchAtivo(leituras?.nivelAlto) === true) return 'CHEIO'
-  if (switchAtivo(leituras?.nivelBaixo) === true) return 'VAZIO'
-  return null
-}
-function estadoNivelRegistro(registro, tanqueId) {
-  return estadoNivelLeituras(registro?.sensores?.[tanqueId])
-}
-function valorDoGrafico(registro, tanqueId, sensorId) {
-  if (sensorId !== 'nivel') return leituraNumerica(registro, tanqueId, sensorId)
-  const estado = estadoNivelRegistro(registro, tanqueId)
-  if (estado === 'CHEIO') return 1
-  if (estado === 'VAZIO') return 0
-  const percentual = percentualNivelLeituras(registro?.sensores?.[tanqueId])
-  return percentual === null ? null : percentual / 100
-}
-function estadoNivelAtual(tanqueId) {
-  for (const registro of [...historicoComparativo.value].reverse()) {
-    const estado = estadoNivelRegistro(registro, tanqueId)
-    if (estado) return estado
-  }
-  return 'SEM LEITURA'
-}
-function percentualNivelAtual(tanqueId) {
-  for (const registro of [...historicoComparativo.value].reverse()) {
-    const percentual = percentualNivelLeituras(registro.sensores?.[tanqueId])
-    if (percentual !== null) return percentual
-  }
-  return 50
-}
-const tanquesPainel = computed(() => statusTanques.value.map((tanque) => ({
-  ...tanque,
-  percentualNivel: percentualNivelAtual(tanque.id),
-  sensoresNivel: tanque.medicoes.filter((medicao) => medicao.chave.startsWith('nivel')),
-})))
-const tanqueSelecionadoId = ref(null)
-const controlesEquipamentosAbertos = computed(() => tanqueSelecionadoId.value !== null)
 function alternarControlesTanque(tanqueId) {
   tanqueSelecionadoId.value = tanqueSelecionadoId.value === tanqueId ? null : tanqueId
 }
-function leituraNumerica(registro, tanqueId, sensorId) {
-  const valor = registro?.sensores?.[tanqueId]?.[sensorId]
-  return valor !== null && valor !== undefined && valor !== '' && Number.isFinite(Number(valor)) ? Number(valor) : null
+
+// Persistência local de cadastros
+function persistirUsuarios() {
+  salvarUsuarios(usuarios.value)
 }
-function persistirHistorico() {
-  try {
-    localStorage.setItem(chaveHistorico, JSON.stringify(historicoComparativo.value))
-  } catch {
-    notificacaoHistorico.value = 'Não foi possível salvar o histórico neste navegador.'
+
+function adicionarUsuario({ usuario, senha, perfil }) {
+  const nome = usuario.trim().toLowerCase()
+  if (nome.length < 3) {
+    mensagemUsuarios.value = 'O usuário deve ter pelo menos 3 caracteres.'
+    return
   }
-}
-function atualizarHistoricoComparativo(pacote) {
-  const sensoresRecebidos = pacote.sensores
-  if (!sensoresRecebidos || typeof sensoresRecebidos !== 'object' || Array.isArray(sensoresRecebidos)) return false
-
-  const atualizacoes = {}
-  const camposNivel = ['nivel', 'nivelPercentual', 'nivelPorcentagem', 'nivelAlto', 'nivelBaixo']
-  const leiturasNivelPlanas = sensoresRecebidos['tanque-ativos'] || (
-    camposNivel.some((campo) => sensoresRecebidos[campo] !== undefined) ? sensoresRecebidos : null
-  )
-  for (const tanque of tanquesComparacao) {
-    const leituras = sensoresRecebidos[tanque.id] || (tanque.id === 'tanque-ativos' ? leiturasNivelPlanas : null)
-    if (!leituras || typeof leituras !== 'object' || Array.isArray(leituras)) continue
-
-    for (const sensor of ['turbidez', 'ph', 'temperatura']) {
-      const recebido = leituras[sensor]
-      if (recebido === null || recebido === undefined || recebido === '') continue
-      const valor = Number(recebido)
-      if (!Number.isFinite(valor)) continue
-      atualizacoes[tanque.id] ||= {}
-      atualizacoes[tanque.id][sensor] = valor
-    }
-    const percentualNivel = percentualNivelExplicito(leituras)
-    if (percentualNivel !== null) {
-      atualizacoes[tanque.id] ||= {}
-      atualizacoes[tanque.id].nivelPercentual = percentualNivel
-    }
-    const estadoNivel = typeof leituras.nivel === 'number' ? null : normalizarEstadoNivel(leituras.nivel)
-    if (estadoNivel) {
-      atualizacoes[tanque.id] ||= {}
-      atualizacoes[tanque.id].nivel = estadoNivel
-    }
-    const possuiLeituraDireta = percentualNivel !== null || estadoNivel !== null
-    const possuiContatos = ['nivelAlto', 'nivelBaixo'].some((sensor) => leituras[sensor] !== undefined)
-    if (possuiLeituraDireta || possuiContatos) {
-      atualizacoes[tanque.id] ||= {}
-      if (possuiLeituraDireta && !possuiContatos) {
-        atualizacoes[tanque.id].nivelAlto = null
-        atualizacoes[tanque.id].nivelBaixo = null
-      } else if (possuiContatos && !possuiLeituraDireta) {
-        atualizacoes[tanque.id].nivelPercentual = null
-        atualizacoes[tanque.id].nivel = null
-      }
-      if (possuiLeituraDireta && estadoNivel === null) atualizacoes[tanque.id].nivel = null
-    }
-    for (const sensor of ['nivelAlto', 'nivelBaixo']) {
-      if (leituras[sensor] === undefined) continue
-      const contato = switchAtivo(leituras[sensor])
-      atualizacoes[tanque.id] ||= {}
-      atualizacoes[tanque.id][sensor] = contato === null ? null : contato ? 'LIGADO' : 'DESLIGADO'
-    }
+  if (usuarios.value.some((conta) => conta.usuario === nome)) {
+    mensagemUsuarios.value = 'Este usuário já existe.'
+    return
   }
-  if (!Object.keys(atualizacoes).length) return false
-
-  const base = origemHistorico.value === 'demonstrativo' ? [] : historicoComparativo.value
-  const anterior = base.at(-1)
-  const leiturasAtuais = Object.fromEntries(Object.entries(anterior?.sensores || {}).map(([id, leituras]) => [id, { ...leituras }]))
-  for (const [tanqueId, leituras] of Object.entries(atualizacoes)) {
-    leiturasAtuais[tanqueId] = { ...leiturasAtuais[tanqueId], ...leituras }
+  if (senha.length < 6) {
+    mensagemUsuarios.value = 'A senha deve ter pelo menos 6 caracteres.'
+    return
   }
 
-  const recebido = pacote.timestamp ? new Date(pacote.timestamp).getTime() : Date.now()
-  const timestamp = Number.isFinite(recebido) ? recebido : Date.now()
-  historicoComparativo.value = [...base, { timestamp, sensores: leiturasAtuais }].sort((a, b) => a.timestamp - b.timestamp).slice(-2000)
-  origemHistorico.value = 'websocket'
-  persistirHistorico()
-  return true
+  usuarios.value.push({ usuario: nome, senha, perfil })
+  persistirUsuarios()
+  mensagemUsuarios.value = `Usuário ${nome} criado.`
 }
-async function compartilharGrafico(grafico) {
-  const url = new URL(window.location.href)
-  url.hash = `historico-${grafico.id}`
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: grafico.titulo, text: 'Comparativo de leituras da ETA', url: url.toString() })
-      return
-    }
-    await navigator.clipboard.writeText(url.toString())
-    notificacaoHistorico.value = 'Link do gráfico copiado.'
-  } catch (erro) {
-    if (erro.name !== 'AbortError') notificacaoHistorico.value = 'Não foi possível compartilhar o gráfico.'
+
+function excluirUsuario(conta) {
+  if (conta.usuario === usuarioLogado.value) {
+    mensagemUsuarios.value = 'Não é possível excluir a própria conta durante a sessão.'
+    return
   }
-  window.clearTimeout(notificacaoTimer)
-  notificacaoTimer = window.setTimeout(() => { notificacaoHistorico.value = '' }, 3000)
+  if (conta.perfil === 'admin' && usuarios.value.filter((u) => u.perfil === 'admin').length <= 1) {
+    mensagemUsuarios.value = 'Mantenha pelo menos um administrador no sistema.'
+    return
+  }
+  if (!window.confirm(`Excluir o usuário ${conta.usuario}?`)) return
+
+  usuarios.value = usuarios.value.filter((u) => u.usuario !== conta.usuario)
+  persistirUsuarios()
+  mensagemUsuarios.value = `Usuário ${conta.usuario} excluído.`
 }
-let notificacaoTimer
-function iniciarWebSocket() {
-  const url = import.meta.env.VITE_WS_URL
-  if (!url) return
-  try {
-    socket = new WebSocket(url)
-    socket.onopen = () => { wsStatus.value = 'online' }
-    socket.onclose = () => { wsStatus.value = 'offline' }
-    socket.onerror = () => { wsStatus.value = 'offline' }
-    socket.onmessage = ({ data: mensagem }) => {
-      const pacote = JSON.parse(mensagem)
-      const comparativoAtualizado = atualizarHistoricoComparativo(pacote)
-      if (pacote.sensores && !comparativoAtualizado) {
-        sensores.value = sensores.value.map((sensor) => pacote.sensores[sensor.id] === undefined ? sensor : { ...sensor, valor: pacote.sensores[sensor.id] })
-      }
-    }
-  } catch { wsStatus.value = 'offline' }
+
+function abrirTrocaSenha(conta) {
+  usuarioSenhaSelecionado.value = usuarioSenhaSelecionado.value === conta.usuario ? '' : conta.usuario
+  mensagemUsuarios.value = ''
 }
+
+function trocarSenha(conta, novaSenha) {
+  if (novaSenha.length < 6) {
+    mensagemUsuarios.value = 'A nova senha deve ter pelo menos 6 caracteres.'
+    return
+  }
+
+  conta.senha = novaSenha
+  persistirUsuarios()
+  usuarioSenhaSelecionado.value = ''
+  mensagemUsuarios.value = `Senha de ${conta.usuario} atualizada.`
+}
+
+let clock
 onMounted(() => {
   clock = window.setInterval(() => { agora.value = new Date() }, 1000)
   if (usuarioLogado.value) registrarEventoAcionamento({ tipo: 'modo', modo: modo.value, descricao: `Sessão retomada em modo ${modo.value}` })
-  iniciarWebSocket()
 })
-onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notificacaoTimer); socket?.close() })
+
+onBeforeUnmount(() => {
+  window.clearInterval(clock)
+})
 </script>
 
 <template>
+  <!-- Formulário de Login (Caso não haja sessão ativa) -->
   <LoginForm v-if="!usuarioLogado" @login="concluirLogin" />
+
+  <!-- Aplicação Principal -->
   <div v-else class="scada-app" :class="{ 'light-theme': !temaEscuro }">
-    <aside class="sidebar">
-      <div class="brand-mark"><span class="brand-drop">◢</span><div><strong>ETA</strong><small>SUPERVISÓRIO</small></div></div>
-      <div class="plant-label">Estação de Tratamento<br>de Água</div>
-      <nav class="main-nav"><button v-for="item in paginasVisiveis" :key="item.id" class="nav-item" :class="{ active: pagina === item.id }" @click="navegar(item.id)"><span class="nav-icon">{{ item.icone }}</span><span>{{ item.titulo }}</span><b v-if="item.badge" class="nav-badge">{{ item.badge }}</b></button></nav>
-      <div class="sidebar-footer"><span class="user-avatar">{{ usuarioLogado.slice(0, 1).toUpperCase() }}</span><div><strong>{{ usuarioLogado }}</strong><small>{{ ehAdministrador ? 'Administrador' : 'Operador' }}</small></div><button class="icon-button" @click="sair">⇥</button></div>
-    </aside>
+    <BarraLateral
+      :usuario-logado="usuarioLogado"
+      :eh-administrador="ehAdministrador"
+      :pagina="pagina"
+      :paginas-visiveis="paginasComBadge"
+      @navegar="navegar"
+      @sair="sair"
+    />
+
     <main class="main-area">
-      <header class="topbar"><div><span class="breadcrumb">SUPERVISÓRIO / {{ paginas.find((item) => item.id === pagina)?.titulo.toUpperCase() }}</span><h1>{{ pagina === 'visao' ? 'Visão geral da planta' : paginas.find((item) => item.id === pagina)?.titulo }}</h1></div><div class="topbar-actions"><div class="communication"><span class="live-dot" :class="wsStatus"></span><div><strong>{{ wsStatus === 'online' ? 'ESP32 ONLINE' : 'ESP32 OFFLINE' }}</strong><small>Backend conectado</small></div></div><div class="date-time"><strong>{{ hora }}</strong><span>{{ data }} · Quinta-feira</span></div><button class="theme-toggle" @click="temaEscuro = !temaEscuro">{{ temaEscuro ? '☀' : '☾' }}</button></div></header>
+      <CabecalhoPrincipal
+        :pagina="pagina"
+        :paginas="paginas"
+        :ws-status="mqttStatus"
+        :hora="hora"
+        :data="data"
+        :tema-escuro="temaEscuro"
+        @toggle-tema="temaEscuro = !temaEscuro"
+      />
 
+      <!-- Tela 1: Visão Geral e Controle por Tanque -->
       <section v-if="pagina === 'visao'" class="page-content">
-        <div class="status-strip"><div><span class="status-dot"></span><strong>Sistema operando normalmente</strong><small>Última sincronização {{ hora }}</small></div><div class="strip-metric"><span>Modo atual</span><strong>{{ modo }}</strong></div><div class="strip-metric"><span>Alarmes ativos</span><strong class="danger">{{ ativos.length }}</strong></div><button class="outline-button" @click="pagina = 'alarmes'">Ver alarmes →</button></div>
-        <div class="section-heading"><div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span><h2>Monitoramento por tanque</h2></div><span class="update-label">● Atualização automática</span></div>
-        <div class="tank-status-panel">
-          <article v-for="tanque in statusTanques" :key="tanque.nome" class="tank-status-item">
-            <strong>{{ tanque.nome }}<span>● NORMAL</span></strong>
-            <div class="tank-sensor-tags">
-              <button v-for="medicao in tanque.medicoes" :key="medicao.chave" type="button" class="tank-sensor-tag" :class="medicao.classe" :aria-label="medicao.chave.startsWith('nivel') ? `${medicao.nome} do tanque ${tanque.nome}: normal. Abrir detalhes` : `${medicao.nome} do tanque ${tanque.nome}: ${medicao.valor}. Abrir detalhes`" @click="abrirDetalhe(medicao, tanque)">
-                <span class="tag-icon">{{ medicao.icone }}</span>
-                <template v-if="medicao.chave.startsWith('nivel')">
-                  <span>Nível</span>
-                  <strong>{{ medicao.chave === 'nivelAlto' ? 'Alto' : 'Baixo' }}</strong>
-                </template>
-                <template v-else>
-                  <span>{{ medicao.nome }}</span>
-                  <strong>{{ medicao.valor }}</strong>
-                </template>
-                <small>{{ medicao.estado }}</small>
-              </button>
-            </div>
-          </article>
+        <FaixaStatus :hora="hora" :modo="modo" :qtd-alarmes-ativos="alarmesAtivos.length" @ver-alarmes="pagina = 'alarmes'" />
+
+        <div class="section-heading">
+          <div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span><h2>Monitoramento por tanque</h2></div>
+          <span class="update-label">● Atualização automática</span>
         </div>
 
-        <div class="action-panel">
-          <div class="action-header">
-            <div>
-              <span class="section-kicker">ETA · PROCESSO</span>
-              <h3>Monitoramento de Equipamentos</h3>
-            </div>
-            <div class="mode-toggle-group">
-              <button type="button" class="mode-toggle" :class="{ active: modo === 'AUTOMÁTICO' }" :aria-pressed="modo === 'AUTOMÁTICO'" @click="mudarModo('AUTOMÁTICO')">Automático</button>
-              <button type="button" class="mode-toggle" :class="{ active: modo === 'MANUAL' }" :aria-pressed="modo === 'MANUAL'" @click="mudarModo('MANUAL')">Manual</button>
-              <button type="button" class="mode-toggle stop" :class="{ active: modo === 'PARADA' }" :aria-pressed="modo === 'PARADA'" @click="mudarModo('PARADA')">Parada total</button>
-            </div>
-          </div>
+        <PainelStatusTanques :status-tanques="statusTanques" @abrir-detalhe="abrirDetalhe" />
 
-          <div class="equipment-board" :class="{ 'controls-open': controlesEquipamentosAbertos }">
-            <div class="tank-control-grid">
-              <article v-for="tanque in tanquesPainel" :key="tanque.id" class="tank-control-card" :class="{ selected: tanqueSelecionadoId === tanque.id }">
-                <h4>{{ tanque.nome }}</h4>
-                <div class="tank-control-body">
-                  <button type="button" class="tank-vessel" :aria-expanded="tanqueSelecionadoId === tanque.id" :aria-label="`${tanque.nome} com ${tanque.percentualNivel}% de nível. ${tanqueSelecionadoId === tanque.id ? 'Ocultar' : 'Mostrar'} acionamentos`" @click="alternarControlesTanque(tanque.id)">
-                    <span class="tank-rim"></span><span class="tank-water" :style="{ height: `${tanque.percentualNivel}%` }"></span><span class="tank-base"></span>
-                  </button>
-                  <div class="tank-level-list">
-                    <button v-for="medicao in tanque.sensoresNivel" :key="medicao.chave" type="button" class="tank-level-item" :aria-label="`${medicao.nome} do tanque ${tanque.nome}: ${medicao.valor}. Abrir detalhes`" @click="abrirDetalhe(medicao, tanque)">
-                      <span class="tank-level-name"><i :class="{ active: medicao.valor === 'LIGADO' }"></i>{{ medicao.nome }}</span>
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </div>
-            <div v-if="controlesEquipamentosAbertos" id="action-grid-equipamentos" class="action-grid">
-              <button v-for="equipamento in equipamentos" :key="equipamento.tag" type="button" class="action-card" :class="{ on: equipamento.ativo }" :disabled="!manual" :aria-pressed="equipamento.ativo" :aria-label="`${equipamento.nome}: ${equipamento.ativo ? 'ligado' : 'desligado'}`" :style="{ '--equipment-color': equipamento.cor }" @click="equipamentoToggle(equipamento)">
-                <div class="action-card-top"><h4>{{ equipamento.nome }}</h4></div>
-                <div class="equipment-art" :class="equipamento.tipo" aria-hidden="true">
-                  <template v-if="equipamento.tipo === 'pump'">
-                    <span class="pump-inlet"></span><span class="pump-body"><i></i></span><span class="pump-nozzle"></span><span class="pump-coupling"></span><span class="pump-motor"></span><span class="pump-foot"></span>
-                  </template>
-                  <template v-else-if="equipamento.tipo === 'doser'">
-                    <span class="doser-cap"></span><span class="doser-head"></span><span class="doser-neck"></span><span class="doser-container"><span></span></span><span class="doser-tube"></span>
-                  </template>
-                  <template v-else>
-                    <span class="valve-coil"></span><span class="valve-stem"></span><span class="valve-body"></span><span class="valve-pipe left"></span><span class="valve-pipe right"></span>
-                  </template>
-                </div>
-                <span class="equipment-state" :class="{ on: equipamento.ativo }"><span></span>{{ equipamento.ativo ? 'LIGADA' : 'DESLIGADA' }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div v-if="sensorSelecionado" class="metric-modal-overlay" tabindex="-1" @click="sensorSelecionado = null" @keydown.esc="sensorSelecionado = null">
-          <section class="metric-modal" role="dialog" aria-modal="true" :aria-label="`Detalhes de ${sensorSelecionado.nome}`" @click.stop>
-            <button type="button" class="modal-close" aria-label="Fechar detalhes" @click="sensorSelecionado = null">×</button>
-            <div class="modal-header">
-              <span class="modal-kicker">{{ sensorSelecionado.tanque }} · {{ sensorSelecionado.nome }}</span>
-              <h3>{{ sensorSelecionado.valor }}</h3>
-            </div>
-            <div class="modal-status good">{{ sensorSelecionado.estado }}</div>
-            <div class="modal-grid">
-              <div class="modal-field"><span>Tanque</span><strong>{{ sensorSelecionado.tanque }}</strong></div>
-              <div class="modal-field"><span>Valor atual</span><strong>{{ sensorSelecionado.valor }}</strong></div>
-              <div class="modal-field"><span>Estado</span><strong>{{ sensorSelecionado.estado }}</strong></div>
-              <div class="modal-field"><span>Última atualização</span><strong>{{ sensorSelecionado.ultimaAtualizacao }}</strong></div>
-              <div class="modal-field"><span>Histórico recente</span><strong>{{ sensorSelecionado.historico.join(' · ') }}</strong></div>
-              <div class="modal-field"><span>Modo</span><strong>{{ sensorSelecionado.modo }}</strong></div>
-            </div>
-          </section>
-        </div>
+        <PainelEquipamentos
+          :modo="modo"
+          :manual="manual"
+          :tanques-painel="tanquesPainel"
+          :tanque-selecionado-id="tanqueSelecionadoId"
+          :equipamentos="equipamentos"
+          @mudar-modo="mudarModo"
+          @alternar-tanque="alternarControlesTanque"
+          @abrir-detalhe="abrirDetalhe"
+          @equipamento-toggle="equipamentoToggle"
+        />
+
+        <ModalMetrica :sensor-selecionado="sensorSelecionado" @fechar="sensorSelecionado = null" />
       </section>
 
+      <!-- Tela 2: Histórico e Tendências Graficas -->
       <section v-else-if="pagina === 'historico'" class="page-content inner-page">
         <div class="comparison-heading">
           <div><span class="section-kicker">ANÁLISE OPERACIONAL</span><h2>Histórico e tendências</h2><p>Compare a evolução das variáveis entre os tanques.</p></div>
           <span class="history-source" :class="origemHistorico">● {{ descricaoOrigemHistorico }}</span>
         </div>
-        <p v-if="origemHistorico === 'demonstrativo'" class="demo-notice">Exemplo ilustrativo. Envie leituras identificadas por tanque pelo WebSocket para ver dados reais.</p>
+
         <div class="comparison-toolbar">
           <div class="period-control" role="group" aria-label="Período do histórico">
             <button v-for="horas in [1, 6, 12, 24]" :key="horas" type="button" :class="{ selected: periodo === horas }" :aria-pressed="periodo === horas" @click="periodo = horas">{{ horas }}h</button>
@@ -659,8 +429,9 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
             </div>
           </details>
         </div>
+
         <div class="comparison-grid">
-          <ComparisonChart
+          <GraficoComparativo
             v-for="grafico in graficosComparativos"
             :key="grafico.id"
             :titulo="grafico.titulo"
@@ -675,154 +446,49 @@ onBeforeUnmount(() => { window.clearInterval(clock); window.clearTimeout(notific
             <template #actions>
               <button type="button" class="share-chart-button" @click="compartilharGrafico(grafico)">Compartilhar</button>
             </template>
-          </ComparisonChart>
+          </GraficoComparativo>
         </div>
-        <section class="actuation-history" aria-labelledby="actuation-history-title">
-          <div class="actuation-history-header">
-            <div>
-              <span class="section-kicker">RASTREABILIDADE</span>
-              <h3 id="actuation-history-title">Histórico de acionamentos</h3>
-              <p>Trocas de modo e comandos manuais registrados por usuário.</p>
-            </div>
-            <span class="actuation-history-count">{{ historicoAcionamentosFiltrado.length }} registros</span>
-          </div>
-          <div class="actuation-history-filters" role="group" aria-label="Filtrar histórico de acionamentos">
-            <button v-for="filtro in [{ id: 'todos', nome: 'Todos' }, { id: 'modo', nome: 'Modos' }, { id: 'equipamento', nome: 'Equipamentos' }]" :key="filtro.id" type="button" :class="{ selected: filtroAcionamentos === filtro.id }" :aria-pressed="filtroAcionamentos === filtro.id" @click="filtroAcionamentos = filtro.id">{{ filtro.nome }}</button>
-          </div>
-          <div v-if="historicoAcionamentosFiltrado.length" class="actuation-history-list">
-            <article v-for="evento in historicoAcionamentosFiltrado" :key="evento.id" class="actuation-history-item" :class="evento.tipo">
-              <span class="actuation-event-marker" aria-hidden="true"></span>
-              <div class="actuation-event-main">
-                <div class="actuation-event-heading">
-                  <strong>{{ evento.tipo === 'modo' ? evento.modo : evento.equipamento }}</strong>
-                  <span class="actuation-event-kind">{{ evento.tipo === 'modo' ? 'Modo de operação' : evento.identificador }}</span>
-                </div>
-                <p>{{ evento.descricao }}</p>
-              </div>
-              <div class="actuation-event-meta">
-                <time :datetime="new Date(evento.timestamp).toISOString()">{{ new Date(evento.timestamp).toLocaleString('pt-BR') }}</time>
-                <span>Por <strong>{{ evento.usuario }}</strong></span>
-              </div>
-            </article>
-          </div>
-          <p v-else class="actuation-history-empty">Nenhum acionamento registrado neste filtro.</p>
-        </section>
+
+        <HistoricoAcionamentos
+          :historico-acionamentos-filtrado="historicoAcionamentosFiltrado"
+          :filtro-acionamentos="filtroAcionamentos"
+          @atualizar-filtro="(f) => filtroAcionamentos = f"
+        />
+
         <p v-if="notificacaoHistorico" class="history-notification" role="status">{{ notificacaoHistorico }}</p>
       </section>
+
+      <!-- Tela 3: Painel de Alarmes -->
       <section v-else-if="pagina === 'alarmes'" class="page-content alarm-page">
-        <div class="alarm-header">
-          <div>
-            <h2>Alarmes e eventos</h2>
-            <p>Monitoramento da ETA</p>
-          </div>
-          <div class="alarm-counter-box">
-            <strong>{{ alarmesAtivos.length }}</strong>
-            <span>Ativos</span>
-          </div>
-        </div>
-
-        <div class="alarm-summary-grid">
-          <div v-for="item in alarmesResumo" :key="item.label" class="alarm-summary-card" :class="item.tone">
-            <span>{{ item.label }}</span>
-            <strong>{{ item.value }}</strong>
-          </div>
-        </div>
-
-        <div class="alarm-tabs" role="tablist" aria-label="Categorias de alarmes">
-          <button type="button" class="tab-button" :class="{ active: filtroAlarmes === 'ativos' }" @click="filtroAlarmes = 'ativos'">
-            Ativos ({{ alarmesAtivos.length }})
-          </button>
-          <button type="button" class="tab-button" :class="{ active: filtroAlarmes === 'historico' }" @click="filtroAlarmes = 'historico'">
-            Histórico
-          </button>
-        </div>
-
-        <div v-if="filtroAlarmes === 'ativos'" class="alarm-list">
-          <article v-for="alarme in alarmesAtivos" :key="alarme.title" class="alarm-item" :class="alarme.type">
-            <div class="alarm-icon" :class="alarme.type">{{ alarme.icon }}</div>
-            <div class="alarm-body">
-              <div class="alarm-line">
-                <div class="alarm-text">
-                  <strong>{{ alarme.title }}</strong>
-                  <span v-if="alarme.badge" class="alarm-badge">{{ alarme.badge }}</span>
-                </div>
-                <button type="button" class="ack-button" @click="desativarAlarme(alarme)">Desativar</button>
-              </div>
-              <div class="alarm-meta">
-                <span>{{ alarme.severity }} · {{ alarme.status }}</span>
-              </div>
-              <p>{{ alarme.description }}</p>
-            </div>
-          </article>
-        </div>
-
-        <div v-else class="alarm-list history-list">
-          <article v-for="alarme in alarmesHistorico" :key="alarme.title" class="alarm-item history-item" :class="alarme.type">
-            <div class="alarm-icon" :class="alarme.type">{{ alarme.icon }}</div>
-            <div class="alarm-body">
-              <div class="alarm-line">
-                <div class="alarm-text">
-                  <strong>{{ alarme.title }}</strong>
-                </div>
-                <button type="button" class="ack-button secondary" @click="reativarAlarme(alarme)">Reativar</button>
-              </div>
-              <div class="alarm-meta">
-                <span>{{ alarme.severity }} · {{ alarme.status }}</span>
-              </div>
-              <p>{{ alarme.description }}</p>
-            </div>
-          </article>
-          <div v-if="!alarmesHistorico.length" class="empty-history">Nenhum evento no histórico.</div>
-        </div>
+        <PainelAlarmes
+          :alarmes-ativos="alarmesAtivos"
+          :alarmes-historico="alarmesHistorico"
+          :alarmes-resumo="alarmesResumo"
+          :filtro-alarmes="filtroAlarmes"
+          @desativar-alarme="desativarAlarme"
+          @reativar-alarme="reativarAlarme"
+          @atualizar-filtro="(f) => filtroAlarmes = f"
+        />
       </section>
+
+      <!-- Tela 4: Gestão de Usuários e Sistema -->
       <section v-else-if="pagina === 'configuracoes' && ehAdministrador" class="page-content inner-page">
         <div class="page-title-row">
           <div><span class="section-kicker">ADMINISTRAÇÃO</span><h2>Configurações do sistema</h2><p>Gerencie contas e parâmetros da estação.</p></div>
         </div>
 
-        <section class="users-section" aria-labelledby="users-title">
-          <div class="users-section-heading">
-            <div><span class="section-kicker">ACESSO AO SISTEMA</span><h3 id="users-title">Usuários</h3></div>
-            <span class="users-count">{{ usuarios.length }} contas</span>
-          </div>
+        <GestaoUsuarios
+          :usuarios="usuarios"
+          :usuario-logado="usuarioLogado"
+          :mensagem-usuarios="mensagemUsuarios"
+          :usuario-senha-selecionado="usuarioSenhaSelecionado"
+          @adicionar-usuario="adicionarUsuario"
+          @excluir-usuario="excluirUsuario"
+          @abrir-troca-senha="abrirTrocaSenha"
+          @trocar-senha="trocarSenha"
+        />
 
-          <form class="user-create-form" @submit.prevent="adicionarUsuario">
-            <label class="user-field"><span>Usuário</span><input v-model="novoUsuario" autocomplete="off" minlength="3" required placeholder="Nome de acesso"></label>
-            <label class="user-field"><span>Senha inicial</span><input v-model="novaSenha" type="password" autocomplete="new-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
-            <label class="user-field"><span>Perfil</span><select v-model="novoPerfil"><option value="operador">Operador</option><option value="admin">Administrador</option></select></label>
-            <button type="submit" class="user-primary-button">Adicionar usuário</button>
-          </form>
-
-          <p v-if="mensagemUsuarios" class="users-feedback" role="status">{{ mensagemUsuarios }}</p>
-
-          <div class="users-table-wrap">
-            <table class="users-table">
-              <thead><tr><th>Usuário</th><th>Perfil</th><th>Ações</th></tr></thead>
-              <tbody>
-                <template v-for="conta in usuarios" :key="conta.usuario">
-                  <tr>
-                    <td><strong>{{ conta.usuario }}</strong><small v-if="conta.usuario === usuarioLogado">Sessão atual</small></td>
-                    <td><span class="user-role" :class="conta.perfil">{{ conta.perfil === 'admin' ? 'Administrador' : 'Operador' }}</span></td>
-                    <td class="user-actions">
-                      <button type="button" class="user-secondary-button" @click="abrirTrocaSenha(conta)">{{ usuarioSenhaSelecionado === conta.usuario ? 'Cancelar' : 'Trocar senha' }}</button>
-                      <button type="button" class="user-delete-button" :disabled="conta.usuario === usuarioLogado" @click="excluirUsuario(conta)">Excluir</button>
-                    </td>
-                  </tr>
-                  <tr v-if="usuarioSenhaSelecionado === conta.usuario" class="password-edit-row">
-                    <td colspan="3">
-                      <form class="password-edit-form" @submit.prevent="trocarSenha(conta)">
-                        <label class="user-field"><span>Nova senha para {{ conta.usuario }}</span><input v-model="senhaAtualizada" type="password" autocomplete="new-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label>
-                        <button type="submit" class="user-primary-button">Salvar senha</button>
-                      </form>
-                    </td>
-                  </tr>
-                </template>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <div class="config-grid"><div class="config-card"><span class="config-icon">⇄</span><div><strong>WebSocket / MQTT bridge</strong><p>Canal bidirecional para telemetria e comandos</p></div><span class="config-status">AGUARDANDO</span></div><div class="config-card"><span class="config-icon">▣</span><div><strong>Banco de dados</strong><p>Histórico de medições, estados, eventos e alarmes</p></div><span class="config-status">PRONTO</span></div><div class="config-card"><span class="config-icon">＋</span><div><strong>Modelo modular</strong><p>Novos sensores e atuadores podem ser adicionados por ID</p></div><span class="config-status">ATIVO</span></div></div>
+        <GridStatusSistema />
       </section>
     </main>
   </div>
