@@ -2,16 +2,18 @@
 import { computed } from 'vue'
 import CartaoControleTanque from './CartaoControleTanque.vue'
 import CartaoEquipamento from './CartaoEquipamento.vue'
+import { formatarEtapa } from '../../constantes/etapasProcesso'
 
 const props = defineProps({
   modo: { type: String, required: true },
   manual: { type: Boolean, default: false },
   tanquesPainel: { type: Array, required: true },
   tanqueSelecionadoId: { type: String, default: null },
-  equipamentos: { type: Array, required: true }
+  equipamentos: { type: Array, required: true },
+  etapaAtual: { type: String, default: 'Inicial' }
 })
 
-const emit = defineEmits(['mudar-modo', 'alternar-tanque', 'abrir-detalhe', 'equipamento-toggle'])
+defineEmits(['mudar-modo', 'alternar-tanque', 'abrir-detalhe', 'equipamento-toggle'])
 
 const equipamentosDoTanque = computed(() => {
   if (!props.tanqueSelecionadoId) return []
@@ -21,28 +23,61 @@ const equipamentosDoTanque = computed(() => {
 const tanqueAtual = computed(() => {
   return props.tanquesPainel.find((t) => t.id === props.tanqueSelecionadoId)
 })
+
+const etapa = computed(() => formatarEtapa(props.etapaAtual))
+const porcentagem = computed(() => Math.round((etapa.value.numero / 14) * 100))
 </script>
 
 <template>
   <div class="action-panel">
+    <!-- Barra de progresso da etapa do processo (Exemplo 3) -->
+    <div v-if="modo === 'AUTOMÁTICO'" class="process-progress-panel">
+      <div class="progress-info">
+        <span>
+          <i class="live-dot"></i> ETAPA {{ etapa.numero }} DE {{ etapa.total }}
+        </span>
+        <strong>{{ etapa.nome }}</strong>
+        <span>{{ porcentagem }}% Concluído</span>
+      </div>
+
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" :style="{ width: `${porcentagem}%` }"></div>
+      </div>
+    </div>
+
     <div class="action-header">
       <div>
         <span class="section-kicker">ETA · PROCESSO</span>
         <h3>Monitoramento de Equipamentos</h3>
       </div>
       <div class="mode-toggle-group">
-        <button type="button" class="mode-toggle" :class="{ active: modo === 'AUTOMÁTICO' }"
-          :aria-pressed="modo === 'AUTOMÁTICO'" @click="$emit('mudar-modo', 'AUTOMÁTICO')">
+        <button
+          type="button"
+          class="mode-toggle"
+          :class="{ active: modo === 'AUTOMÁTICO' }"
+          :aria-pressed="modo === 'AUTOMÁTICO'"
+          @click="$emit('mudar-modo', 'AUTOMÁTICO')"
+        >
           Automático
         </button>
 
-        <button type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
-          :aria-pressed="modo === 'MANUAL'" @click="$emit('mudar-modo', 'MANUAL')">
+        <button
+          type="button"
+          class="mode-toggle manual"
+          :class="{ active: modo === 'MANUAL' }"
+          :aria-pressed="modo === 'MANUAL'"
+          @click="$emit('mudar-modo', 'MANUAL')"
+        >
           Manual
         </button>
 
-        <button type="button" class="mode-toggle stop" :class="{ active: modo === 'PARADA' }"
-          :aria-pressed="modo === 'PARADA'" @click="$emit('mudar-modo', 'PARADA')">
+        <button
+          type="button"
+          class="mode-toggle stop"
+          :class="{ active: modo === 'PARADA' }"
+          :aria-pressed="modo === 'PARADA'"
+          @click="$emit('mudar-modo', 'PARADA')"
+        >
           Parada total
         </button>
       </div>
@@ -50,27 +85,43 @@ const tanqueAtual = computed(() => {
 
     <div class="equipment-board">
       <div class="tank-control-grid">
-        <CartaoControleTanque v-for="tanque in tanquesPainel" :key="tanque.id" :tanque="tanque"
-          :selecionado="tanqueSelecionadoId === tanque.id" @alternar-tanque="(id) => $emit('alternar-tanque', id)"
-          @abrir-detalhe="(m, t) => $emit('abrir-detalhe', m, t)" />
+        <CartaoControleTanque
+          v-for="tanque in tanquesPainel"
+          :key="tanque.id"
+          :tanque="tanque"
+          :selecionado="tanqueSelecionadoId === tanque.id"
+          @alternar-tanque="(id) => $emit('alternar-tanque', id)"
+          @abrir-detalhe="(m, t) => $emit('abrir-detalhe', m, t)"
+        />
       </div>
     </div>
 
-    <div v-if="tanqueSelecionadoId" class="metric-modal-overlay" tabindex="-1" @click="$emit('alternar-tanque', null)"
-      @keydown.esc="$emit('alternar-tanque', null)">
+    <div
+      v-if="tanqueSelecionadoId"
+      class="metric-modal-overlay"
+      tabindex="-1"
+      @click="$emit('alternar-tanque', null)"
+      @keydown.esc="$emit('alternar-tanque', null)"
+    >
       <section class="metric-modal tank-actuators-modal" role="dialog" aria-modal="true" @click.stop>
         <button type="button" class="modal-close" aria-label="Fechar" @click="$emit('alternar-tanque', null)">×</button>
 
         <div class="modal-header">
           <span class="modal-kicker">ACIONAMENTOS DO RESERVATÓRIO</span>
           <h3>{{ tanqueAtual?.nome || 'Tanque' }}</h3>
-          <p v-if="!manual" class="manual-warning-text">⚠️ Alterne para o modo <strong>MANUAL</strong> para acionar os
-            equipamentos.</p>
+          <p v-if="!manual" class="manual-warning-text">
+            ⚠️ Alterne para o modo <strong>MANUAL</strong> para acionar os equipamentos.
+          </p>
         </div>
 
         <div v-if="equipamentosDoTanque.length" class="popup-equipment-grid">
-          <CartaoEquipamento v-for="equipamento in equipamentosDoTanque" :key="equipamento.tag"
-            :equipamento="equipamento" :manual="manual" @toggle="(eq) => $emit('equipamento-toggle', eq)" />
+          <CartaoEquipamento
+            v-for="equipamento in equipamentosDoTanque"
+            :key="equipamento.tag"
+            :equipamento="equipamento"
+            :manual="manual"
+            @toggle="(eq) => $emit('equipamento-toggle', eq)"
+          />
         </div>
 
         <p v-else class="empty-actuators-msg">Nenhum atuador configurado para este tanque.</p>

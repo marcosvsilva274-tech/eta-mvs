@@ -104,6 +104,7 @@ const alarmesResumo = computed(() => [
 // Atualiza a badge do menu lateral conforme quantidade de alarmes pendentes
 const paginasComBadge = computed(() => paginasVisiveis.value.map((p) => p.id === 'alarmes' ? { ...p, badge: alarmesAtivos.value.length } : p))
 
+
 /**
  * Mapeia e insere alertas recebidos no padrão "Código;Severidade;Descrição"
  */
@@ -143,6 +144,9 @@ function processarAlertaRecebido(alerta) {
     })
   }
 }
+
+// Estado reativo para armazenar a etapa vinda do MQTT
+const { etapaAtual } = useMqtt()
 
 // --- CONEXÃO COM O BROKER MQTT E TRATAMENTO DE TELEMETRIA ---
 const { mqttStatus, publicarComando } = useMqtt(
@@ -386,7 +390,7 @@ onBeforeUnmount(() => {
 
       <!-- Tela 1: Visão Geral e Controle por Tanque -->
       <section v-if="pagina === 'visao'" class="page-content">
-        <FaixaStatus :hora="hora" :modo="modo" :qtd-alarmes-ativos="alarmesAtivos.length" @ver-alarmes="pagina = 'alarmes'" />
+        <FaixaStatus :hora="hora" :modo="modo" :qtd-alarmes-ativos="alarmesAtivos.length" @ver-alarmes="pagina = 'alarmes'" :etapa-atual="etapaAtual" />
 
         <div class="section-heading">
           <div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span><h2>Monitoramento por tanque</h2></div>
@@ -401,6 +405,7 @@ onBeforeUnmount(() => {
           :tanques-painel="tanquesPainel"
           :tanque-selecionado-id="tanqueSelecionadoId"
           :equipamentos="equipamentos"
+          :etapa-atual="etapaAtual"
           @mudar-modo="mudarModo"
           @alternar-tanque="alternarControlesTanque"
           @abrir-detalhe="abrirDetalhe"

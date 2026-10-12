@@ -11,7 +11,7 @@ import mqtt from 'mqtt'
 export function useMqtt(onTelemetria, onAlerta) {
   // Estado reativo para indicar a conexão com o broker/ESP32 ('online' | 'offline')
   const mqttStatus = ref('offline')
-  
+
   let client = null
   let watchdogTimer = null
 
@@ -26,6 +26,8 @@ export function useMqtt(onTelemetria, onAlerta) {
   const topicoTelemetria = import.meta.env.VITE_MQTT_TOPIC_TELEMETRIA || 'eta/telemetria'
   const topicoAlertas = import.meta.env.VITE_MQTT_TOPIC_ALERTAS || 'eta/alertas'
   const topicoComandos = import.meta.env.VITE_MQTT_TOPIC_COMANDOS || 'eta/comandos'
+
+  const etapaAtual = ref('Inicial')
 
   /**
    * Monitora a frequência da telemetria (Watchdog Timer).
@@ -98,10 +100,14 @@ export function useMqtt(onTelemetria, onAlerta) {
         try {
           const pacote = JSON.parse(payloadTexto)
           if (onTelemetria) onTelemetria(pacote)
+          // Se o JSON contiver a chave 'etapa_atual', atualiza a variável reativa
+          if (pacote.etapa_processo !== undefined) {
+            etapaAtual.value = pacote.etapa_processo
+          }
         } catch (erro) {
           console.error('Erro ao processar JSON de telemetria:', erro)
         }
-      } 
+      }
       // Tratamento para mensagens de alertas (Formato: "Código;Severidade;Descritivo")
       else if (topic === topicoAlertas) {
         const partes = payloadTexto.split(';')
@@ -142,6 +148,7 @@ export function useMqtt(onTelemetria, onAlerta) {
   })
 
   return {
+    etapaAtual,
     mqttStatus,
     publicarComando
   }
