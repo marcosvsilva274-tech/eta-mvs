@@ -75,14 +75,14 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
         <!-- TUBULAÇÃO 1: Armazenamento -> Ativos (Via PM1) -->
         <g class="pipe-group" :class="{ flowing: fluxoTubulacao1 }">
-          <path d="M 210 250 H 280 V 90 H 300" class="pipe-bg" />
-          <path d="M 210 250 H 280 V 90 H 300" class="pipe-flow water-cyan" />
+          <path d="M 207 250 H 280 V 90 H 297" class="pipe-bg" />
+          <path d="M 207 250 H 280 V 90 H 297" class="pipe-flow water-cyan" />
         </g>
 
         <!-- TUBULAÇÃO 2A: Ativos -> Filtro (Via PM2 / SV2) -->
         <g class=" pipe-group" :class="{ flowing: fluxoTubulacao2Filtro }">
-          <path d="M 545 255 V 255 H 590 V 200 H 625" class="pipe-bg" />
-          <path d="M 545 255 V 255 H 590 V 200 H 625" class="pipe-flow water-cyan" />
+          <path d="M 530 250 V 250 H 590 V 200 H 627" class="pipe-bg" />
+          <path d="M 530 250 V 250 H 590 V 200 H 627" class="pipe-flow water-cyan" />
         </g>
 
         <!-- TUBULAÇÃO 2B: Ativos -> Efluentes (Via SV1) -->
@@ -93,14 +93,14 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
         <!-- TUBULAÇÃO 3: Filtro -> Armazenagem Tratado -->
         <g class="pipe-group" :class="{ flowing: fluxoTubulacao3Tratado }">
-          <path d="M 740 200 H 770 V 155 H 790" class="pipe-bg" />
-          <path d="M 740 200 H 770 V 155 H 790" class="pipe-flow water-cyan" />
+          <path d="M 730 200 H 770 V 155 H 790" class="pipe-bg" />
+          <path d="M 730 200 H 770 V 155 H 790" class="pipe-flow water-cyan" />
         </g>
 
         <!-- TUBULAÇÃO 4: Efluentes -> Retorno Armazenamento (Via PM3) -->
         <g class="pipe-group" :class="{ flowing: fluxoTubulacao4Retorno }">
-          <path d="M 470 440 H 30 V 100 H 55" class="pipe-bg" />
-          <path d="M 470 440 H 30 V 100 H 55" class="pipe-flow water-cyan" />
+          <path d="M 485 440 H 30 V 100 H 55" class="pipe-bg" />
+          <path d="M 485 440 H 30 V 100 H 55" class="pipe-flow water-cyan" />
         </g>
 
 
