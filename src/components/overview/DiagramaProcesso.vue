@@ -157,7 +157,8 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
             <!-- SENSORES COM TITLE DINÂMICO PARA pH E TURBIDEZ -->
             <div class="vessel-probes">
               <span class="probe ph" :title="`pH: ${getValorSensor('tanque-ativos', 'ph')}`">pH</span>
-              <span class="probe temp" :title="`Temperatura: ${getValorSensor('tanque-ativos', 'temperatura')}`">T</span>
+              <span class="probe temp"
+                :title="`Temperatura: ${getValorSensor('tanque-ativos', 'temperatura')}`">T</span>
               <span class="probe tb" :title="`Turbidez: ${getValorSensor('tanque-ativos', 'turbidez')}`">TB</span>
             </div>
 
@@ -697,6 +698,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
   .tank-efluentes {
     grid-column: span 1;
+    grid-row: 5;
   }
 
   .diagram-viewport {
