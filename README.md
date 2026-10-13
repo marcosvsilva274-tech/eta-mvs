@@ -24,7 +24,7 @@ Interface web supervisory/SCADA desenvolvida com **Vue 3** e **Vite** para monit
 
 ### Gestão de Acesso e Alarmes
 
-- Modal de detalhes de medição por tanque (LAL, LA, LB, LBB).
+- Modal de detalhes de medição por tanque.
 - Controle de usuários (Admin/Operador) com persistência em `localStorage`.
 - Central de alarmes com filtro por severidade e confirmação (*ack*).
 
@@ -43,9 +43,6 @@ npm install
 
 # Executar servidor de desenvolvimento
 npm run dev
-
-# Gerar build de produção
-npm run build
 ```
 
 ---
