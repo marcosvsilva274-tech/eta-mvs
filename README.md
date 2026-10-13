@@ -1,63 +1,135 @@
-# Supervisório ETA
+# Supervisório ETA — Estação de Tratamento de Água
 
-Interface web de supervisão para uma estação de tratamento de água, feita com Vue 3 e Vite. O painel apresenta sensores, etapas do processo, equipamentos e alarmes. Sem conexão configurada, os dados exibidos são demonstrativos.
+Interface web supervisory/SCADA desenvolvida com **Vue 3** e **Vite** para monitoramento, controle e visualização em tempo real de uma Estação de Tratamento de Água (ETA), integrada a controladores ESP32 via protocolo MQTT / WebSocket.
 
-## Executar
+---
 
-Requer Node.js e npm.
+## Recursos Principais
+
+### Conectividade e Saúde do Sistema
+
+- **Integração MQTT / ESP32**: Comunicação bidirecional para envio de comandos de acionamento e recebimento de telemetria dos sensores e estado dos atuadores.
+- **Watchdog (5s)**: Monitoramento contínuo da conexão. Em caso de reconexão automática, dispara o comando `UPDATE_ALL` para sincronizar o estado da planta.
+
+### Acompanhamento do Processo Automatizado (17 Etapas)
+
+- Mapeamento dinâmico do campo `etapa_atual` recebido via JSON no MQTT para descrições amigáveis e acompanhamento numérico de progresso (**1 a 17 etapas**).
+- **Barra de Progresso Visual**: Exibição da porcentagem de conclusão do ciclo automático e destaque da etapa em execução tanto no painel de equipamentos quanto na faixa de status.
+
+### Modos de Operação Dinâmicos
+
+- **AUTOMÁTICO**: Visualização do ciclo sequencial e progresso das etapas.
+- **MANUAL**: Liberação dos cartões de acionamento para controle direto dos atuadores por reservatório (paleta amarelada no botão e faixa de status).
+- **PARADA TOTAL**: Bloqueio visual e operacional de segurança (paleta avermelhada).
+
+### Gestão de Acesso e Alarmes
+
+- Modal de detalhes de medição por tanque (LAL, LA, LB, LBB).
+- Controle de usuários (Admin/Operador) com persistência em `localStorage`.
+- Central de alarmes com filtro por severidade e confirmação (*ack*).
+
+---
+
+## Executar o Projeto
+
+### Requisitos
+
+- **Node.js** (v18 ou superior)
+- **npm** / **yarn** / **pnpm**
 
 ```sh
+# Instalar dependências
 npm install
+
+# Executar servidor de desenvolvimento
 npm run dev
-```
 
-Para gerar a versão de produção:
-
-```sh
+# Gerar build de produção
 npm run build
 ```
 
-## WebSocket
+---
 
-Defina `VITE_WS_URL` em um arquivo `.env.local` para conectar o painel ao backend:
+## Protocolo de Comunicação MQTT / JSON
+
+Defina a URL do servidor em um arquivo `.env.local`:
 
 ```env
 VITE_WS_URL=ws://localhost:8080
 ```
 
-Os gráficos comparativos exigem que cada leitura seja associada ao tanque. Envie os sensores dentro do ID correspondente: `agua-bruta`, `tanque-ativos`, `agua-tratada` ou `efluentes`. As variáveis aceitas são `turbidez`, `ph`, `temperatura` e `nivel` como `CHEIO` ou `VAZIO`. Também são aceitos contatos digitais: `nivelAlto` ligado indica `CHEIO` e `nivelBaixo` ligado indica `VAZIO`:
+### Estrutura do Payload JSON (Telemetria)
+
+O ESP32 deve enviar as leituras e o estado do processo utilizando a estrutura JSON abaixo:
 
 ```json
 {
-	"timestamp": "2026-10-01T12:00:00.000Z",
-	"sensores": {
-		"agua-bruta": { "turbidez": 1.2, "temperatura": 24.3, "nivel": "CHEIO" },
-		"tanque-ativos": { "turbidez": 2.0, "ph": 7.1, "nivel": "VAZIO" },
-		"agua-tratada": { "turbidez": 0.8, "ph": 7.2, "temperatura": 24.3, "nivel": "CHEIO" },
-		"efluentes": { "nivel": "VAZIO" }
-	}
+  "timestamp": "2026-10-12T12:00:00.000Z",
+  "etapa_atual": "DosandoCoagulante",
+  "modo": "AUTOMÁTICO",
+  "sensores": {
+    "agua-bruta": { 
+      "turbidez": 1.2, 
+      "temperatura": 24.3, 
+      "nivelPercentual": 85, 
+      "nivelAlto": true, 
+      "nivelBaixo": false 
+    },
+    "tanque-ativos": { 
+      "turbidez": 2.0, 
+      "ph": 7.1, 
+      "nivelPercentual": 64, 
+      "nivelAlto": false, 
+      "nivelBaixo": false 
+    },
+    "agua-tratada": { 
+      "turbidez": 0.8, 
+      "ph": 7.2, 
+      "temperatura": 24.3, 
+      "nivelPercentual": 90, 
+      "nivelAlto": true, 
+      "nivelBaixo": false 
+    },
+    "efluentes": { 
+      "nivelPercentual": 10, 
+      "nivelAlto": false, 
+      "nivelBaixo": true 
+    }
+  }
 }
 ```
 
-Para animar o nível da água, envie `nivelPercentual` ou `nivelPorcentagem` de `0` a `100`, ou envie `nivel` numérico nessa mesma faixa. Os contatos `nivelAlto` e `nivelBaixo` também atualizam o tanque e os indicadores; eles aceitam booleanos, `0`/`1`, `ON`/`OFF` ou `LIGADO`/`DESLIGADO`. As mensagens podem vir dentro de `sensores.tanque-ativos` ou como sensores globais:
+---
 
-```json
-{
-	"sensores": {
-		"tanque-ativos": {
-			"nivelPercentual": 64,
-			"nivelAlto": false,
-			"nivelBaixo": false
-		}
-	}
-}
-```
+## Tabela de Etapas do Processo Automatizado
 
-Sem esse formato, os gráficos exibem dados demonstrativos. Leituras recebidas são mantidas no armazenamento local do navegador, com limite de 2.000 registros; o payload antigo com sensores globais continua atualizando o resumo, mas não permite compará-los por tanque.
+O sistema mapeia o valor da chave `etapa_atual` para a seguinte sequência contínua de 14 etapas, as etapas marcadas como #5 fazem parte do processo de tratamento quimico:
 
-## Acesso demonstrativo
+| # | Chave JSON (`etapa_atual`) | Descrição Exibida na Interface |
+|---|----------------------------|--------------------------------|
+| **1** | `Inicial` | Enchendo Tanque de Armazenamento |
+| **2** | `VerificNivelAltoArmaz` | Verificando Nível Alto (Armazenamento) |
+| **3** | `EsvaziandoTqArmaz` | Esvaziando Tanque de Armazenamento |
+| **4** | `VerificTransferenciaAtivos` | Verificando Nível (Tanque de Ativos) |
+| **5** | `DosandoCoagulante` | Dosando Coagulante |
+| **5** | `VerificandoPh` | Verificando pH |
+| **5** | `DosandoAlcalinizante` | Dosando Alcalinizante |
+| **5** | `DosandoSanitizante` | Dosando Sanitizante |
+| **6** | `PreparaCoagulacao` | Homogeneização / Preparo Coagulação |
+| **7** | `Decantacao` | Aguardando Decantação |
+| **8** | `PreparandoLibercaoSedimentos` | Preparando Liberação de Sedimentos |
+| **9** | `RemovendoSedimentos` | Removendo Sedimentos |
+| **10** | `PreparandoEsvaziamentoAtivos` | Preparando Esvaziamento de Ativos |
+| **11** | `EsvaziandoTanqueAtivos` | Esvaziando Tanque de Ativos |
+| **12** | `VerificTransferenciaFinal` | Verificando Nível (Tanque Final) |
+| **13** | `TratamentoUv` | Tratamento com Luz UV |
+| **14** | `Finalizado` | Processo Finalizado |
 
-- Administrador: `admin` / `admin123`
-- Operador: `operador` / `senha123`
+---
 
-O administrador pode cadastrar usuários, escolher o perfil, trocar senhas e excluir contas em Configurações. As contas ficam salvas no `localStorage` do navegador. Este login é demonstrativo: em produção, senhas devem ser armazenadas com hash no servidor e permissões verificadas pelo backend.
+## 🔑 Acesso Demonstrativo
+
+Caso o sistema esteja rodando sem broker MQTT ativo, ele carregará dados demonstrativos para simulação visual.
+
+- **Administrador**: `admin` / `admin123`
+- **Operador**: `operador` / `senha123`

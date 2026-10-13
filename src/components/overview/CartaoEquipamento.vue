@@ -39,6 +39,13 @@ defineEmits(['toggle'])
         <span class="mixer-blade"></span>
       </template>
 
+      <!-- LAMPADA (Com LED indicativo) -->
+      <template v-else-if="equipamento.tipo === 'lamp'">
+        <span class="lamp-body"></span>
+        <span class="lamp-head"></span>        
+        <span class="lamp-bottom"></span>
+      </template>
+
       <!-- SOLENOIDE (Com LED no valve-coil) -->
       <template v-else>
         <span class="valve-coil"><i class="valve-led"></i></span>
@@ -48,6 +55,7 @@ defineEmits(['toggle'])
         <span class="valve-pipe right"></span>
       </template>
     </div>
+
 
     <span class="equipment-state" :class="{ on: equipamento.ativo }">
       <span></span>{{ equipamento.ativo ? 'LIGADA' : 'DESLIGADA' }}

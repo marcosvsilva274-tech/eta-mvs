@@ -85,7 +85,7 @@ const equipamentos = ref([
   { nome: 'Dosador Coagulante (DM1)', tag: 'dosador_fecl3_dm1', comando: 'DM1', tipo: 'doser', cor: '#ffc52e', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
   { nome: 'Dosador Alcalinizante (DM2)', tag: 'dosador_caco3_dm2', comando: 'DM2', tipo: 'doser', cor: '#25d47d', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
   { nome: 'Dosador Sanitizante (DM3)', tag: 'dosador_naclo_dm3', comando: 'DM3', tipo: 'doser', cor: '#078ee8', ativo: false, ignorarTelemetria: 0, tanqueId: 'tanque-ativos' },
-  { nome: 'Lâmpada UV (H1)', tag: 'lampada_uv', comando: 'H1', tipo: 'solenoid', cor: '#a855f7', ativo: false, ignorarTelemetria: 0, tanqueId: 'agua-tratada' },
+  { nome: 'Lâmpada UV (H1)', tag: 'lampada_uv', comando: 'H1', tipo: 'lamp', cor: '#a855f7', ativo: false, ignorarTelemetria: 0, tanqueId: 'agua-tratada' },
 ])
 
 let estadosAutomaticos = new Map()
@@ -145,11 +145,8 @@ function processarAlertaRecebido(alerta) {
   }
 }
 
-// Estado reativo para armazenar a etapa vinda do MQTT
-const { etapaAtual } = useMqtt()
-
 // --- CONEXÃO COM O BROKER MQTT E TRATAMENTO DE TELEMETRIA ---
-const { mqttStatus, publicarComando } = useMqtt(
+const { etapaAtual, mqttStatus, publicarComando } = useMqtt(
   // 1. Processamento de Telemetria
   (pacote) => {
     atualizarHistoricoComparativo(pacote)

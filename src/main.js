@@ -11,3 +11,10 @@ import App from './App.vue'
 // Cria uma nova instância da aplicação Vue com o componente App
 // e monta a aplicação no elemento HTML com id 'app'
 createApp(App).mount('#app')
+
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (event.reason && event.reason.message && event.reason.message.includes('message channel closed before a response was received')) {
+    event.preventDefault()
+  }
+})
