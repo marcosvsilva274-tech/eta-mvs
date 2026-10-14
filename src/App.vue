@@ -231,7 +231,7 @@ function mudarModo(novoModo) {
   }
 
   modo.value = novoModo
-  ignorarTelemetriaModo.value = 2 // Define delay de 2 telemetrias para o modo
+  ignorarTelemetriaModo.value = 1 // Define delay de 2 telemetrias para o modo
 
   const comandoMqtt = novoModo === 'AUTOMÁTICO' ? 'AUTOMATICO' : novoModo === 'MANUAL' ? 'MANUAL' : 'EMERGENCIA'
   publicarComando(comandoMqtt)
@@ -245,7 +245,7 @@ function mudarModo(novoModo) {
 function equipamentoToggle(equipamento) {
   if (!manual.value) return
   equipamento.ativo = !equipamento.ativo
-  equipamento.ignorarTelemetria = 2 // Trava o equipamento específico por 2 leituras
+  equipamento.ignorarTelemetria = 1 // Trava o equipamento específico por 2 leituras
 
   publicarComando(equipamento.comando)
 
