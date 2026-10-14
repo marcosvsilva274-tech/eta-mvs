@@ -91,14 +91,14 @@ const equipamentos = ref([
 let estadosAutomaticos = new Map()
 
 // --- ESTADO DOS ALARMES ---
-const alarmesPainel = ref([])
+const alarmesAtivos = ref([])
+const alarmesHistorico = ref([])
 const filtroAlarmes = ref('ativos')
-const alarmesAtivos = computed(() => alarmesPainel.value.filter((alarme) => alarme.ativo))
-const alarmesHistorico = computed(() => alarmesPainel.value.filter((alarme) => !alarme.ativo))
+
 const alarmesResumo = computed(() => [
-  { label: 'Todos', value: alarmesPainel.value.length, tone: 'normal' },
-  { label: 'Atenção', value: alarmesPainel.value.filter((alarme) => alarme.type === 'warning' && alarme.ativo).length, tone: 'warning' },
-  { label: 'Críticos', value: alarmesPainel.value.filter((alarme) => alarme.type === 'critical' && alarme.ativo).length, tone: 'danger' },
+  { label: 'Total', value: alarmesAtivos.value.length + alarmesHistorico.value.length, tone: 'normal' },
+  { label: 'Atenção', value: alarmesAtivos.value.filter((alarme) => alarme.type === 'warning').length, tone: 'warning' },
+  { label: 'Críticos', value: alarmesAtivos.value.filter((alarme) => alarme.type === 'critical').length, tone: 'danger' },
 ])
 
 // Atualiza a badge do menu lateral conforme quantidade de alarmes pendentes
@@ -116,31 +116,33 @@ function processarAlertaRecebido(alerta) {
   }
 
   const infoSeveridade = mapaSeveridade[alerta.severidade] || mapaSeveridade[0]
-  const indexExistente = alarmesPainel.value.findIndex((a) => a.codigo === alerta.codigo)
+  const horaEnvio = new Date().toLocaleTimeString('pt-BR')
+  const indexExistente = alarmesAtivos.value.findIndex((a) => a.codigo === alerta.codigo)
 
-  // Atualiza alarme se ele já existia ou adiciona um novo no topo da lista
+  // Atualiza alarme se ele já existia nos ativos ou adiciona um novo no topo
   if (indexExistente !== -1) {
-    alarmesPainel.value[indexExistente] = {
-      ...alarmesPainel.value[indexExistente],
+    alarmesAtivos.value[indexExistente] = {
+      ...alarmesAtivos.value[indexExistente],
       title: alerta.descricao,
       severity: infoSeveridade.severity,
       type: infoSeveridade.type,
       icon: infoSeveridade.icon,
-      description: `Código #${alerta.codigo} — Atualizado às ${new Date().toLocaleTimeString('pt-BR')}`,
-      ativo: true,
+      horaEnvio,
+      description: `Código #${alerta.codigo} — Atualizado às ${horaEnvio}`,
       status: 'Ativo'
     }
   } else {
-    alarmesPainel.value.unshift({
+    alarmesAtivos.value.unshift({
+      id: `ativo-${alerta.codigo}-${Date.now()}`,
       codigo: alerta.codigo,
       title: alerta.descricao,
       severity: infoSeveridade.severity,
       status: 'Ativo',
-      description: `Código #${alerta.codigo} — Recebido às ${new Date().toLocaleTimeString('pt-BR')}`,
+      description: `Código #${alerta.codigo} — Recebido às ${horaEnvio}`,
       badge: 'Novo',
       type: infoSeveridade.type,
       icon: infoSeveridade.icon,
-      ativo: true
+      horaEnvio
     })
   }
 }
@@ -259,20 +261,55 @@ function equipamentoToggle(equipamento) {
 }
 
 /**
- * Desativa um alarme ativo e envia "alerta/codigo" para o broker
+ * Desativa um alarme ativo e salva um registro permanente no Histórico
  */
 function desativarAlarme(alarme) {
-  alarme.ativo = false
-  alarme.status = 'Histórico'
+  const horaDesativado = new Date().toLocaleTimeString('pt-BR')
 
-  if (alarme.codigo) {
+  // Remove da lista de ativos
+  alarmesAtivos.value = alarmesAtivos.value.filter((a) => (a.id ? a.id !== alarme.id : a.codigo !== alarme.codigo))
+
+  // Adiciona uma nova entrada no histórico sem sobrescrever registros passados
+  alarmesHistorico.value.unshift({
+    id: `hist-${alarme.codigo ?? '0'}-${Date.now()}`,
+    codigo: alarme.codigo,
+    title: alarme.title,
+    severity: alarme.severity,
+    type: alarme.type,
+    icon: alarme.icon,
+    status: 'Desativado',
+    horaEnvio: alarme.horaEnvio || horaDesativado,
+    horaDesativado,
+    description: `Código #${alarme.codigo} — Recebido às ${alarme.horaEnvio || horaDesativado} | Desativado às ${horaDesativado}`
+  })
+
+  if (alarme.codigo !== undefined) {
     publicarComando(`alerta/${alarme.codigo}`)
   }
 }
 
+/**
+ * Reativa um alarme colocando-o de volta nos ativos sem remover o histórico existente
+ */
 function reativarAlarme(alarme) {
-  alarme.ativo = true
-  alarme.status = 'Ativo'
+  const horaReativado = new Date().toLocaleTimeString('pt-BR')
+
+  const jaAtivo = alarmesAtivos.value.some((a) => a.codigo === alarme.codigo)
+  if (!jaAtivo) {
+    alarmesAtivos.value.unshift({
+      id: `ativo-${alarme.codigo}-${Date.now()}`,
+      codigo: alarme.codigo,
+      title: alarme.title,
+      severity: alarme.severity,
+      status: 'Ativo',
+      description: `Código #${alarme.codigo} — Reativado às ${horaReativado}`,
+      badge: 'Reativado',
+      type: alarme.type,
+      icon: alarme.icon,
+      horaEnvio: horaReativado
+    })
+  }
+
   filtroAlarmes.value = 'ativos'
 }
 
@@ -427,7 +464,7 @@ onBeforeUnmount(() => {
             <summary>Opções do gráfico</summary>
             <div class="chart-option-list">
               <label><input v-model="marcadoresVisiveis" type="checkbox"> Mostrar pontos</label>
-              <label><input v-model="linhasSuaves" type="checkbox"> Suavizar linhas</label>
+              <label><input v-model="linhasSuaves" type="checkbox"> Mostrar linhas</label>
             </div>
           </details>
         </div>
