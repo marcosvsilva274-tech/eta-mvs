@@ -8,12 +8,12 @@ import { formatarEtapa } from '../../constantes/etapasProcesso'
 const props = defineProps({
   modo: { type: String, required: true },
   manual: { type: Boolean, default: false },
+  ehVisitante: { type: Boolean, default: false },
   tanquesPainel: { type: Array, required: true },
   tanqueSelecionadoId: { type: String, default: null },
   equipamentos: { type: Array, required: true },
   etapaAtual: { type: String, default: 'Inicial' }
 })
-
 const emit = defineEmits(['mudar-modo', 'alternar-tanque', 'abrir-detalhe', 'equipamento-toggle'])
 
 const equipamentosDoTanque = computed(() => {
@@ -43,7 +43,7 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
           Automático
         </button>
 
-        <button type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
+        <button v-if="!ehVisitante"  type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
           :aria-pressed="modo === 'MANUAL'" @click="$emit('mudar-modo', 'MANUAL')">
           Manual
         </button>
@@ -56,7 +56,7 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
     </div>
 
     <!-- Barra de progresso da etapa do processo -->
-    <div v-if="modo === 'AUTOMÁTICO'" class="process-progress-panel">
+    <!-- <div v-if="modo === 'AUTOMÁTICO'" class="process-progress-panel">
       <div class="progress-info">
         <span>
           <i class="live-dot"></i> ETAPA {{ etapa.numero }} DE {{ etapa.total }}
@@ -68,7 +68,7 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
       <div class="progress-bar-track">
         <div class="progress-bar-fill" :style="{ width: `${porcentagem}%` }"></div>
       </div>
-    </div>
+    </div> -->
 
     <!-- 1. Diagrama de Processo Interativo -->
     <DiagramaProcesso :equipamentos="equipamentos" :tanques-painel="tanquesPainel" :manual="manual"

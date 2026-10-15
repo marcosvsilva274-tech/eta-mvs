@@ -38,6 +38,7 @@ const temaEscuro = ref(true)
 const pagina = ref(window.location.hash.startsWith('#historico-') ? 'historico' : 'visao')
 const modo = ref('AUTOMÁTICO')
 const manual = computed(() => modo.value === 'MANUAL')
+const ehVisitante = perfilUsuario.value === 'visitante'
 
 // Contador para ignorar temporariamente as telemetrias do modo logo após enviar um comando de alteração
 const ignorarTelemetriaModo = ref(0)
@@ -436,6 +437,7 @@ onBeforeUnmount(() => {
         <PainelEquipamentos
           :modo="modo"
           :manual="manual"
+          :ehVisitante="ehVisitante"
           :tanques-painel="tanquesPainel"
           :tanque-selecionado-id="tanqueSelecionadoId"
           :equipamentos="equipamentos"
