@@ -33,7 +33,7 @@ defineEmits(['navegar', 'sair'])
       <span class="user-avatar" @click="$emit('sair')">{{ usuarioLogado.slice(0, 1).toUpperCase() }}</span>
       <div>
         <strong>{{ usuarioLogado }}</strong>
-        <small>{{ ehAdministrador ? 'Administrador' : '' }}</small>
+        <small>{{ ehAdministrador ? 'Administrador' : 'Usuário' }}</small>
       </div>
       <button class="icon-button" title="Sair" @click="$emit('sair')">⇥</button>
     </div>
