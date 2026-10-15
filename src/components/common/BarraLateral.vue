@@ -30,10 +30,10 @@ defineEmits(['navegar', 'sair'])
       </button>
     </nav>
     <div class="sidebar-footer">
-      <span class="user-avatar">{{ usuarioLogado.slice(0, 1).toUpperCase() }}</span>
+      <span class="user-avatar" @click="$emit('sair')">{{ usuarioLogado.slice(0, 1).toUpperCase() }}</span>
       <div>
         <strong>{{ usuarioLogado }}</strong>
-        <small>{{ ehAdministrador ? 'Administrador' : 'Operador' }}</small>
+        <small>{{ ehAdministrador ? 'Administrador' : '' }}</small>
       </div>
       <button class="icon-button" title="Sair" @click="$emit('sair')">⇥</button>
     </div>
