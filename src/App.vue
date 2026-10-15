@@ -38,7 +38,7 @@ const temaEscuro = ref(true)
 const pagina = ref(window.location.hash.startsWith('#historico-') ? 'historico' : 'visao')
 const modo = ref('AUTOMÁTICO')
 const manual = computed(() => modo.value === 'MANUAL')
-const ehVisitante = perfilUsuario.value === 'visitante'
+const ehVisitante = computed(() => perfilUsuario.value === 'visitante')
 
 // Contador para ignorar temporariamente as telemetrias do modo logo após enviar um comando de alteração
 const ignorarTelemetriaModo = ref(0)
