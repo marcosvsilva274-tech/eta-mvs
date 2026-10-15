@@ -19,7 +19,7 @@ defineEmits(['alternar-tanque', 'abrir-detalhe'])
         @click="$emit('alternar-tanque', tanque.id)"
       >
         <span class="tank-rim"></span>
-        <span class="tank-water" :style="{ height: `${tanque.percentualNivel}%` }"></span>
+        <span class="tank-water" :id="`${ tanque.id }`" :style="{ height: `${tanque.percentualNivel}%` }"></span>
         <span class="tank-base"></span>
       </button>
       <div class="tank-level-list">
@@ -37,3 +37,19 @@ defineEmits(['alternar-tanque', 'abrir-detalhe'])
     </div>
   </article>
 </template>
+
+<style scoped>
+#efluentes {
+  background: linear-gradient(180deg, #6b5040, #654029 48%, #502e1b);
+  box-shadow: inset 5px 8px 14px #8f5938, inset -7px 0 12px #502d19, 0 0 12px #56311d;
+}
+
+#efluentes::before {
+  background: linear-gradient(180deg, #8f5a39, #7b4c2f 72%, #502d19);
+  box-shadow: 0 2px 5px #502d1999;
+}
+
+#efluentes::after {
+  background: #977864;
+}
+</style>

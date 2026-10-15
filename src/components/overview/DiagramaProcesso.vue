@@ -57,7 +57,6 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
       </div>
       <div class="diagram-legend">
         <span class="legend-item"><i class="dot active"></i> Fluxo Ativo</span>
-        <span class="legend-item"><i class="dot inactive"></i> Tubulação Em Repouso</span>
         <small v-if="!manual" class="manual-lock-msg">🔒 Alterne para MANUAL para acionar</small>
       </div>
     </header>
@@ -74,31 +73,31 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
         </defs>
 
         <!-- TUBULAÇÃO 1: Armazenamento -> Ativos (Via PM1) -->
-        <g class="pipe-group" :class="{ flowing: fluxoTubulacao1 }">
+        <g id="pipe-armaz" class="pipe-group" :class="{ flowing: fluxoTubulacao1 }">
           <path d="M 207 250 H 280 V 90 H 297" class="pipe-bg" />
           <path d="M 207 250 H 280 V 90 H 297" class="pipe-flow water-cyan" />
         </g>
 
         <!-- TUBULAÇÃO 2A: Ativos -> Filtro (Via PM2 / SV2) -->
-        <g class=" pipe-group" :class="{ flowing: fluxoTubulacao2Filtro }">
+        <g id="pipe-ativ-filtro" class=" pipe-group" :class="{ flowing: fluxoTubulacao2Filtro }">
           <path d="M 530 250 V 250 H 590 V 200 H 627" class="pipe-bg" />
           <path d="M 530 250 V 250 H 590 V 200 H 627" class="pipe-flow water-cyan" />
         </g>
 
+        <!-- TUBULAÇÃO 3: Filtro -> Armazenagem Tratado -->
+        <g id="pipe-filtro-final" class="pipe-group" :class="{ flowing: fluxoTubulacao3Tratado }">
+          <path d="M 730 200 H 770 V 155 H 790" class="pipe-bg" />
+          <path d="M 730 200 H 770 V 155 H 790" class="pipe-flow water-cyan" />
+        </g>
+        
         <!-- TUBULAÇÃO 2B: Ativos -> Efluentes (Via SV1) -->
-        <g class="pipe-group" :class="{ flowing: fluxoTubulacao2Efluente }">
+        <g id="pipe-ativ-eflu" class="pipe-group" :class="{ flowing: fluxoTubulacao2Efluente }">
           <path d="M 440 280 V 320 H 440" class="pipe-bg brown" />
           <path d="M 440 280 V 320 H 440" class="pipe-flow water-brown" />
         </g>
 
-        <!-- TUBULAÇÃO 3: Filtro -> Armazenagem Tratado -->
-        <g class="pipe-group" :class="{ flowing: fluxoTubulacao3Tratado }">
-          <path d="M 730 200 H 770 V 155 H 790" class="pipe-bg" />
-          <path d="M 730 200 H 770 V 155 H 790" class="pipe-flow water-cyan" />
-        </g>
-
         <!-- TUBULAÇÃO 4: Efluentes -> Retorno Armazenamento (Via PM3) -->
-        <g class="pipe-group" :class="{ flowing: fluxoTubulacao4Retorno }">
+        <g id="pipe-eflu-armaz" class="pipe-group" :class="{ flowing: fluxoTubulacao4Retorno }">
           <path d="M 485 440 H 30 V 100 H 55" class="pipe-bg" />
           <path d="M 485 440 H 30 V 100 H 55" class="pipe-flow water-cyan" />
         </g>
@@ -113,7 +112,11 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <span class="vessel-num-title">1. ARMAZENAMENTO</span>
           <div class="vessel-frame rect-vessel">
             <div class="vessel-probes top-probes">
-              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-bruta', 'temperatura')}`">T</span>
+              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-bruta', 'temperatura')}`">
+                T
+                <div class="popup">{{getValorSensor('agua-bruta', 'temperatura')}}</div>
+              </span>
+              
             </div>
             <div class="vessel-water-fill" :style="{ height: `${getNivel('agua-bruta')}%` }"></div>
           </div>
@@ -156,10 +159,18 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <div class="vessel-frame conical-vessel">
             <!-- SENSORES COM TITLE DINÂMICO PARA pH E TURBIDEZ -->
             <div class="vessel-probes">
-              <span class="probe ph" :title="`pH: ${getValorSensor('tanque-ativos', 'ph')}`">pH</span>
-              <span class="probe temp"
-                :title="`Temperatura: ${getValorSensor('tanque-ativos', 'temperatura')}`">T</span>
-              <span class="probe tb" :title="`Turbidez: ${getValorSensor('tanque-ativos', 'turbidez')}`">TB</span>
+              <span class="probe ph" :title="`pH: ${getValorSensor('tanque-ativos', 'ph')}`">
+                pH
+                <div class="popup">{{getValorSensor('tanque-ativos', 'ph')}}</div>
+              </span>
+              <span class="probe temp" :title="`Temperatura: ${getValorSensor('tanque-ativos', 'temperatura')}`">
+                T
+                <div class="popup">{{getValorSensor('tanque-ativos', 'temperatura')}}</div>
+              </span>
+              <span class="probe tb" :title="`Turbidez: ${getValorSensor('tanque-ativos', 'turbidez')}`">
+                TB
+                <div class="popup">{{getValorSensor('tanque-ativos', 'turbidez')}}</div>
+              </span>
             </div>
 
             <button type="button" class="actuator-btn mixer-btn rm1" :class="{ active: eq('RM1').ativo }"
@@ -208,9 +219,18 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <div class="vessel-frame rect-vessel">
             <!-- SENSORES COM TITLE DINÂMICO PARA pH, TEMPERATURA E TURBIDEZ -->
             <div class="vessel-probes top-probes">
-              <span class="probe ph" :title="`pH: ${getValorSensor('agua-tratada', 'ph')}`">pH</span>
-              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-tratada', 'temperatura')}`">T</span>
-              <span class="probe tb" :title="`Turbidez: ${getValorSensor('agua-tratada', 'turbidez')}`">TB</span>
+              <span class="probe ph" :title="`pH: ${getValorSensor('agua-tratada', 'ph')}`">
+                pH
+                <div class="popup">{{getValorSensor('agua-tratada', 'ph')}}</div>
+              </span>
+              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-tratada', 'temperatura')}`">
+                T
+                <div class="popup">{{getValorSensor('agua-tratada', 'temperatura')}}</div>
+              </span>
+              <span class="probe tb" :title="`Turbidez: ${getValorSensor('agua-tratada', 'turbidez')}`">
+                TB
+                <div class="popup">{{getValorSensor('agua-tratada', 'turbidez')}}</div>
+              </span>
             </div>
 
             <button type="button" class="actuator-btn mixer-btn rm2" :class="{ active: eq('RM2').ativo }"
@@ -248,6 +268,27 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 </template>
 
 <style scoped>
+.popup{
+  display: none;
+  position: absolute;
+  border-radius: 10px;
+  padding: 3px;
+  width: 34px;
+  text-align: center;
+}
+
+.probe.temp .popup {
+  background-color: #ff5361;
+}
+
+.probe.ph .popup {
+  background-color: #00e59c;
+}
+
+.probe.tb .popup {
+  background-color: #34b3ee;
+}
+
 .process-diagram-card {
   margin: 24px 0;
   padding: 20px;
@@ -482,7 +523,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
   right: 10px;
   z-index: 3;
   display: flex;
-  gap: 6px;
+  gap: 15px;
 }
 
 .probe {
@@ -688,9 +729,35 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
 /* RESPONSIVIDADE */
 @media (max-width: 1024px) {
-  .pipes-svg-layer {
+  /* .pipes-svg-layer {
     display: none;
+  } */
+
+  .popup{
+    display: block;
   }
+
+  #pipe-armaz>path {
+    d: path("M 710 80 H 1080 V 140 H 1020");
+  }
+
+  #pipe-ativ-filtro>path {
+    d: path("M 890 210 V 210 H 971 V 252 H 730");
+  }
+
+  #pipe-filtro-final>path {
+    d: path("M 730 295 H 1070 V 335 H 1020");
+  }
+
+  #pipe-ativ-eflu>path {
+    d: path("M 570 222 V 226 H 180 V 317 H 180");
+  }
+
+  #pipe-eflu-armaz>path {
+    d: path("M 390 450 H 30 V 20 H 55");
+  }
+
+
 
   .diagram-canvas {
     grid-template-columns: 1fr;
