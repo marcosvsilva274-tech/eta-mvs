@@ -41,6 +41,11 @@ function alternar(comando) {
   }
 }
 
+function toggleProbPopup(element) {
+  element.style.display = element.style.display === "block" ? "" : "block"
+
+}
+
 // Estados dinâmicos do fluxo de cada tubulação
 const fluxoTubulacao1 = computed(() => eq('PM1').ativo) // Armazenamento -> Ativos
 const fluxoTubulacao2Filtro = computed(() => eq('PM2').ativo && eq('SV2').ativo && !eq('SV1').ativo) // Ativos -> Filtração
@@ -90,7 +95,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <path d="M 730 200 H 770 V 155 H 790" class="pipe-bg" />
           <path d="M 730 200 H 770 V 155 H 790" class="pipe-flow water-cyan" />
         </g>
-        
+
         <!-- TUBULAÇÃO 2B: Ativos -> Efluentes (Via SV1) -->
         <g id="pipe-ativ-eflu" class="pipe-group" :class="{ flowing: fluxoTubulacao2Efluente }">
           <path d="M 440 280 V 320 H 440" class="pipe-bg brown" />
@@ -113,11 +118,12 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <span class="vessel-num-title">1. ARMAZENAMENTO</span>
           <div class="vessel-frame rect-vessel">
             <div class="vessel-probes top-probes">
-              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-bruta', 'temperatura')}`">
-                T
-                <div class="popup">{{getValorSensor('agua-bruta', 'temperatura')}}</div>
+              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-bruta', 'temperatura')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>T</div>
+                <div class="popup">{{ getValorSensor('agua-bruta', 'temperatura') }}</div>
               </span>
-              
+
             </div>
             <div class="vessel-water-fill" :style="{ height: `${getNivel('agua-bruta')}%` }"></div>
           </div>
@@ -160,17 +166,20 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <div class="vessel-frame conical-vessel">
             <!-- SENSORES COM TITLE DINÂMICO PARA pH E TURBIDEZ -->
             <div class="vessel-probes">
-              <span class="probe ph" :title="`pH: ${getValorSensor('tanque-ativos', 'ph')}`">
-                pH
-                <div class="popup">{{getValorSensor('tanque-ativos', 'ph')}}</div>
+              <span class="probe ph" :title="`pH: ${getValorSensor('tanque-ativos', 'ph')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>pH</div>
+                <div class="popup">{{ getValorSensor('tanque-ativos', 'ph') }}</div>
               </span>
-              <span class="probe temp" :title="`Temperatura: ${getValorSensor('tanque-ativos', 'temperatura')}`">
-                T
-                <div class="popup">{{getValorSensor('tanque-ativos', 'temperatura')}}</div>
+              <span class="probe temp" :title="`Temperatura: ${getValorSensor('tanque-ativos', 'temperatura')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>T</div>
+                <div class="popup">{{ getValorSensor('tanque-ativos', 'temperatura') }}</div>
               </span>
-              <span class="probe tb" :title="`Turbidez: ${getValorSensor('tanque-ativos', 'turbidez')}`">
-                TB
-                <div class="popup">{{getValorSensor('tanque-ativos', 'turbidez')}}</div>
+              <span class="probe tb" :title="`Turbidez: ${getValorSensor('tanque-ativos', 'turbidez')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>TB</div>
+                <div class="popup">{{ getValorSensor('tanque-ativos', 'turbidez') }}</div>
               </span>
             </div>
 
@@ -220,17 +229,20 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           <div class="vessel-frame rect-vessel">
             <!-- SENSORES COM TITLE DINÂMICO PARA pH, TEMPERATURA E TURBIDEZ -->
             <div class="vessel-probes top-probes">
-              <span class="probe ph" :title="`pH: ${getValorSensor('agua-tratada', 'ph')}`">
-                pH
-                <div class="popup">{{getValorSensor('agua-tratada', 'ph')}}</div>
+              <span class="probe ph" :title="`pH: ${getValorSensor('agua-tratada', 'ph')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>pH</div>
+                <div class="popup">{{ getValorSensor('agua-tratada', 'ph') }}</div>
               </span>
-              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-tratada', 'temperatura')}`">
-                T
-                <div class="popup">{{getValorSensor('agua-tratada', 'temperatura')}}</div>
+              <span class="probe temp" :title="`Temperatura: ${getValorSensor('agua-tratada', 'temperatura')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>T</div>
+                <div class="popup">{{ getValorSensor('agua-tratada', 'temperatura') }}</div>
               </span>
-              <span class="probe tb" :title="`Turbidez: ${getValorSensor('agua-tratada', 'turbidez')}`">
-                TB
-                <div class="popup">{{getValorSensor('agua-tratada', 'turbidez')}}</div>
+              <span class="probe tb" :title="`Turbidez: ${getValorSensor('agua-tratada', 'turbidez')}`"
+                @click="toggleProbPopup($event.currentTarget.children[1])">
+                <div>TB</div>
+                <div class="popup">{{ getValorSensor('agua-tratada', 'turbidez') }}</div>
               </span>
             </div>
 
@@ -269,7 +281,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 </template>
 
 <style scoped>
-.popup{
+.popup {
   display: none;
   position: absolute;
   border-radius: 10px;
@@ -625,9 +637,13 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
   padding: 0;
 }
 
+.mixer-blades {
+  transform-origin: 50% 55%;
+}
+
 .mixer-blades.spinning {
   display: inline-block;
-  animation: spin 1s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
 @keyframes spin {
@@ -734,9 +750,9 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
     display: none;
   } */
 
-  .popup{
+  /* .popup {
     display: block;
-  }
+  } */
 
   #pipe-armaz>path {
     d: path("M 710 80 H 1080 V 140 H 1020");
