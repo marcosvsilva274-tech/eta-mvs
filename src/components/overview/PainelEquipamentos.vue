@@ -71,7 +71,7 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
     </div> -->
 
     <!-- 1. Diagrama de Processo Interativo -->
-    <DiagramaProcesso :equipamentos="equipamentos" :tanques-painel="tanquesPainel" :manual="manual"
+    <DiagramaProcesso :equipamentos="equipamentos" :eh-visitante="ehVisitante" :tanques-painel="tanquesPainel" :manual="manual"
       @equipamento-toggle="(eq) => $emit('equipamento-toggle', eq)" />
 
     <div class="equipamentos-painal">
@@ -98,14 +98,14 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
         <div class="modal-header">
           <span class="modal-kicker">ACIONAMENTOS DO RESERVATÓRIO</span>
           <h3>{{ tanqueAtual?.nome || 'Tanque' }}</h3>
-          <p v-if="!manual" class="manual-warning-text">
+          <p v-if="!manual && !ehVisitante" class="manual-warning-text">
             ⚠️ Alterne para o modo <strong>MANUAL</strong> para acionar os equipamentos.
           </p>
         </div>
 
         <div v-if="equipamentosDoTanque.length" class="popup-equipment-grid">
           <CartaoEquipamento v-for="equipamento in equipamentosDoTanque" :key="equipamento.tag"
-            :equipamento="equipamento" :manual="manual" @toggle="(eq) => $emit('equipamento-toggle', eq)" />
+            :equipamento="equipamento" :manual="manual" :disabled="!manual || ehVisitante" @toggle="(eq) => $emit('equipamento-toggle', eq)" />
         </div>
 
         <p v-else class="empty-actuators-msg">Nenhum atuador configurado para este tanque.</p>

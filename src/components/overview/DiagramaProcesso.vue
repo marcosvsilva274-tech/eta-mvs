@@ -4,7 +4,8 @@ import { computed } from 'vue'
 const props = defineProps({
   equipamentos: { type: Array, required: true },
   tanquesPainel: { type: Array, required: true },
-  manual: { type: Boolean, default: false }
+  manual: { type: Boolean, default: false },
+  ehVisitante: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['equipamento-toggle'])
@@ -57,7 +58,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
       </div>
       <div class="diagram-legend">
         <span class="legend-item"><i class="dot active"></i> Fluxo Ativo</span>
-        <small v-if="!manual" class="manual-lock-msg">🔒 Alterne para MANUAL para acionar</small>
+        <small v-if="!manual && !ehVisitante" class="manual-lock-msg">🔒 Alterne para MANUAL para acionar</small>
       </div>
     </header>
 

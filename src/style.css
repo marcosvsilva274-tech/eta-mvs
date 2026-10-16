@@ -818,7 +818,7 @@ p {
 }
 
 .action-card:disabled {
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .action-card-top {
