@@ -1032,7 +1032,7 @@ p {
 }
 
 .action-card.on .equipment-art.doser .doser-tube {
-  animation: pulsa-tube 1.5s ease-in-out infinite alternate;
+  animation: pulsa-tube 0.5s ease-in-out infinite alternate;
 }
 
 @keyframes pulsa-tube {
@@ -1045,6 +1045,30 @@ p {
     border-top: 6px solid #7ba7c5;
     border-left: 6px solid #7ba7c5;
   }
+}
+
+.action-card.on .equipment-art.pump {
+  animation: vibra-motor 0.1s infinite;
+}
+
+@keyframes vibra-motor {
+  0% {
+    left: 0;
+    bottom: 0;
+  }
+
+  33% {
+    left: 1px;
+  }
+
+  66% {
+    bottom: 1px;
+  }
+
+  100% {
+    left: 0;
+  }
+
 }
 
 /* --- C. SOLENOIDE (SOLENOID) --- */
