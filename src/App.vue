@@ -196,6 +196,7 @@ const tanqueSelecionadoId = ref(null)
 
 // --- AÇÕES DO USUÁRIO ---
 function concluirLogin(sessao) {
+  mudarModo('AUTOMÁTICO')
   usuarioLogado.value = sessao.usuario
   perfilUsuario.value = sessao.perfil
   pagina.value = 'visao'
