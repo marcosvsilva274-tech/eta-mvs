@@ -518,7 +518,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 }
 
 .vessel-water-fill.efluente-water {
-  background: linear-gradient(180deg, #a86236, #5c2f14);
+  background: linear-gradient(180deg, #32b7dc, #38b5da, #308ec7, #8f532d, #5c2f14);
 }
 
 .sediment-layer {
@@ -755,23 +755,23 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
   } */
 
   #pipe-armaz>path {
-    d: path("M 710 80 H 1080 V 140 H 1020");
+    d: path("M 710 80 H 1080 V 135 H 1020");
   }
 
   #pipe-ativ-filtro>path {
-    d: path("M 890 210 V 210 H 971 V 252 H 730");
+    d: path("M 880 205 V 205 H 930 V 260 H 730");
   }
 
   #pipe-filtro-final>path {
-    d: path("M 730 295 H 1070 V 335 H 1020");
+    d: path("M 730 300 H 1070 V 335 H 1020");
   }
 
   #pipe-ativ-eflu>path {
-    d: path("M 570 222 V 226 H 180 V 317 H 180");
+    d: path("M 569 218 V 223 H 80 V 410 H 260");
   }
 
   #pipe-eflu-armaz>path {
-    d: path("M 390 450 H 30 V 20 H 55");
+    d: path("M 390 450 H 20 V 20 H 85");
   }
 
 
@@ -792,6 +792,10 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
   .diagram-vessel-box:nth-child(n + 2) {
     margin-top: 20px;
+  }
+
+  .diagram-vessel-box:nth-child(3) {
+    margin-top: 50px;
   }
 
   .tank-efluentes[data-v-5564cfe0] {
