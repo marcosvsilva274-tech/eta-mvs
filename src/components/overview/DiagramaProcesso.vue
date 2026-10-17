@@ -638,7 +638,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 }
 
 .mixer-blades {
-  transform-origin: 50% 55%;
+  transform-origin: 50% 48%;
 }
 
 .mixer-blades.spinning {
