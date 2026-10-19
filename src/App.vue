@@ -465,8 +465,8 @@ onBeforeUnmount(() => {
           <details class="chart-options">
             <summary>Opções do gráfico</summary>
             <div class="chart-option-list">
-              <label><input v-model="marcadoresVisiveis" type="checkbox"> Mostrar pontos</label>
-              <label><input v-model="linhasSuaves" type="checkbox"> Mostrar linhas</label>
+              <label><input v-model="marcadoresVisiveis" type="checkbox"> Realçar pontos</label>
+              <label><input v-model="linhasSuaves" type="checkbox"> Suavizar linhas</label>
             </div>
           </details>
         </div>
@@ -484,9 +484,7 @@ onBeforeUnmount(() => {
             :marcadores-visiveis="marcadoresVisiveis"
             :linhas-suaves="linhasSuaves"
           >
-            <template #actions>
-              <button type="button" class="share-chart-button" @click="compartilharGrafico(grafico)">Compartilhar</button>
-            </template>
+
           </GraficoComparativo>
         </div>
 

@@ -57,19 +57,32 @@ function atualizarCoresDoTema() {
 
 function atualizarGrafico() {
   if (!chart) return
-  chart.data.labels = props.labels
-  chart.data.datasets = props.datasets.map((dataset) => ({
+
+  // 1. Limita os rótulos do eixo X aos últimos 15 registros
+  chart.data.labels = props.labels.slice(-15)
+
+  // 2. Atualiza os datasets cortando os dados nos últimos 15 e mantendo a propriedade 'hidden'
+  chart.data.datasets = props.datasets.map((dataset, index) => ({
     ...dataset,
+    data: Array.isArray(dataset.data) ? dataset.data.slice(-15) : [],
+    hidden: ocultos.value.has(index), // Mapeia o estado salvo no Set 'ocultos'
     fill: false,
     borderWidth: 2.5,
     pointRadius: props.marcadoresVisiveis ? 3 : 1.5,
     pointHoverRadius: 5,
     tension: props.linhasSuaves ? 0.35 : 0,
   }))
+
+  // 3. Garante que os metadados internos de visibilidade do Chart.js fiquem sincronizados
+  props.datasets.forEach((_, index) => {
+    chart.setDatasetVisibility(index, !ocultos.value.has(index))
+  })
+
   chart.options.scales.y.beginAtZero = props.unidade === 'Estado'
   chart.options.scales.y.min = props.unidade === 'Estado' ? 0 : undefined
   chart.options.scales.y.max = props.unidade === 'Estado' ? 1 : undefined
   chart.options.scales.y.ticks.stepSize = props.unidade === 'Estado' ? 1 : undefined
+
   chart.update('none')
 }
 
@@ -106,19 +119,16 @@ onBeforeUnmount(() => chart?.destroy())
 <template>
   <article class="comparison-chart-card">
     <header class="comparison-chart-header">
-      <div><h3>{{ titulo }}</h3><span class="chart-unit">{{ unidade }}</span></div>
-      <div class="chart-actions"><slot name="actions" /></div>
+      <div>
+        <h3>{{ titulo }}</h3><span class="chart-unit">{{ unidade }}</span>
+      </div>
+      <div class="chart-actions">
+        <slot name="actions" />
+      </div>
     </header>
     <div class="chart-current-values">
-      <button
-        v-for="(item, indice) in valoresAtuais"
-        :key="item.id"
-        type="button"
-        class="chart-legend-item"
-        :class="{ hidden: ocultos.has(indice) }"
-        :aria-pressed="!ocultos.has(indice)"
-        @click="alternarSerie(indice)"
-      >
+      <button v-for="(item, indice) in valoresAtuais" :key="item.id" type="button" class="chart-legend-item"
+        :class="{ hidden: ocultos.has(indice) }" :aria-pressed="!ocultos.has(indice)" @click="alternarSerie(indice)">
         <span class="chart-legend-swatch" :style="{ '--series-color': item.cor }" />
         <span class="chart-legend-name">{{ item.nome }}</span>
         <strong>{{ formatarValor(item.valor) }}</strong>
@@ -128,6 +138,87 @@ onBeforeUnmount(() => chart?.destroy())
       <canvas ref="canvas" :aria-label="titulo" role="img" />
       <p v-if="!labels.length" class="chart-empty-state">Sem leituras neste período.</p>
     </div>
-    <slot name="options" />
   </article>
 </template>
+
+<style scoped>
+.comparison-chart-card {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+
+.comparison-chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comparison-chart-header h3 {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.chart-unit {
+  display: inline-block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.chart-current-values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.chart-legend-item.hidden {
+  opacity: .45;
+}
+
+.chart-legend-swatch {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--series-color);
+}
+
+.chart-legend-name {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.comparison-chart-canvas {
+  position: relative;
+  width: 100%;
+  height: 220px;
+}
+
+/* ==========================================================================
+   Tema claro
+   ========================================================================== */
+
+
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
+
+@media (max-width: 760px) {}
+</style>
