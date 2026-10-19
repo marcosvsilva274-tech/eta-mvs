@@ -112,6 +112,59 @@ const etapaInfo = computed(() => formatarEtapa(props.etapaAtual))
   font-size: 10px;
 }
 
+.strip-metric {
+  padding-left: 20px;
+  border-left: 1px solid var(--line);
+}
+
+.strip-metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.outline-button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  transition: background-color 0.18s ease;
+}
+
+.outline-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stage-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--cyan);
+}
+
+.stage-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: stage-dot-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes stage-dot-pulse {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
 /* ==========================================================================
    Tema claro
    ========================================================================== */
@@ -167,5 +220,11 @@ const etapaInfo = computed(() => formatarEtapa(props.etapaAtual))
   .status-strip>div:first-child {
     flex-basis: 100%;
   }
+
+  .strip-metric {
+    padding-left: 0;
+    border-left: 0;
+  }
+
 }
 </style>

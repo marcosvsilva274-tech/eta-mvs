@@ -666,6 +666,15 @@ onBeforeUnmount(() => {
   font-size: 12px;
 }
 
+.alarm-page {
+  max-width: 980px;
+  margin: 38px auto 0;
+  padding: 28px 22px 18px;
+  border: 1px solid rgba(96, 146, 183, 0.35);
+  border-radius: 18px;
+  background: rgba(5, 28, 39, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(136, 177, 204, 0.04);
+}
 
 /* ==========================================================================
    Tema claro
@@ -684,6 +693,12 @@ onBeforeUnmount(() => {
   background: radial-gradient(circle at 75% -15%, #dcecf4, transparent 31%), var(--bg);
 }
 
+.light-theme .alarm-page {
+  border-color: #cfdae2;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 28px rgba(25, 57, 76, 0.07);
+}
+
 
 /* ==========================================================================
    Responsividade
@@ -692,6 +707,14 @@ onBeforeUnmount(() => {
 @media (max-width: 900px) {
   .comparison-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+
+@media (max-width: 760px) {
+  .alarm-page {
+    padding: 18px 14px;
+    margin-top: 20px;
   }
 }
 </style>

@@ -55,21 +55,6 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
       </div>
     </div>
 
-    <!-- Barra de progresso da etapa do processo -->
-    <!-- <div v-if="modo === 'AUTOMÁTICO'" class="process-progress-panel">
-      <div class="progress-info">
-        <span>
-          <i class="live-dot"></i> ETAPA {{ etapa.numero }} DE {{ etapa.total }}
-        </span>
-        <strong>{{ etapa.nome }}</strong>
-        <span>{{ porcentagem }}% Concluído</span>
-      </div>
-
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" :style="{ width: `${porcentagem}%` }"></div>
-      </div>
-    </div> -->
-
     <!-- 1. Diagrama de Processo Interativo -->
     <DiagramaProcesso :equipamentos="equipamentos" :eh-visitante="ehVisitante" :tanques-painel="tanquesPainel"
       :manual="manual" @equipamento-toggle="(eq) => $emit('equipamento-toggle', eq)" />

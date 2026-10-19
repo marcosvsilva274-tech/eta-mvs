@@ -36,6 +36,10 @@ defineEmits(['navegar', 'sair'])
 </template>
 
 <style scoped>
+.plant-label {
+  display: none;
+}
+
 .sidebar {
   width: 100%;
   display: flex;
