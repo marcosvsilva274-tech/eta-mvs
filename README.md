@@ -130,3 +130,4 @@ Caso o sistema esteja rodando sem broker MQTT ativo, ele carregará dados demons
 
 - **Administrador**: `admin` / `admin123`
 - **Operador**: `operador` / `senha123`
+- **Operador**: `visitante` / `1234`
