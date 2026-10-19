@@ -1467,11 +1467,6 @@ p {
   color: var(--text);
 }
 
-.light-theme .users-section {
-  border-color: var(--line);
-  box-shadow: 0 3px 12px rgba(29, 69, 93, 0.05);
-}
-
 .light-theme .alarm-page {
   border-color: #cfdae2;
   background: rgba(255, 255, 255, 0.96);
@@ -1641,9 +1636,6 @@ p {
   }
 
   /* Formulários de Usuários e Tabelas */
-  .users-section {
-    padding: 13px;
-  }
 
   .password-edit-form {
     grid-template-columns: 1fr;

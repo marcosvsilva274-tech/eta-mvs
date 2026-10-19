@@ -320,6 +320,11 @@ function submitTrocaSenha(conta) {
   background: #f5f8fa;
 }
 
+.light-theme .users-section {
+  border-color: var(--line);
+  box-shadow: 0 3px 12px rgba(29, 69, 93, 0.05);
+}
+
 /* ==========================================================================
    Responsividade
    ========================================================================== */
@@ -349,5 +354,8 @@ function submitTrocaSenha(conta) {
     grid-template-columns: 1fr;
   }
 
+  .users-section {
+    padding: 13px;
+  }
 }
 </style>
