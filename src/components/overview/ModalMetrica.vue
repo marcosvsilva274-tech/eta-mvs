@@ -26,3 +26,11 @@ defineEmits(['fechar'])
     </section>
   </div>
 </template>
+
+<style scoped>
+
+/* ==========================================================================
+   Tema compartilhado com PainelEquipamentos
+   ========================================================================== */
+
+</style>

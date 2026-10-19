@@ -285,8 +285,8 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
   display: none;
   position: absolute;
   border-radius: 10px;
-  padding: 3px;
-  width: 34px;
+  padding: 5px;
+  width: 40px;
   text-align: center;
 }
 
@@ -536,7 +536,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
   right: 10px;
   z-index: 3;
   display: flex;
-  gap: 15px;
+  gap: 17px;
 }
 
 .probe {
@@ -628,7 +628,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
 .mixer-btn {
   position: absolute;
-  top: 33%;
+  top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;

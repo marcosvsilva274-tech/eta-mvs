@@ -302,38 +302,6 @@ p {
 /* ==========================================================================
    6. PAINEL DE EQUIPAMENTOS E BOTÕES DE MODO
    ========================================================================== */
-.action-panel {
-  margin-top: 20px;
-  padding: 16px;
-  border: 1px solid rgba(0, 151, 218, 0.42);
-  border-radius: 9px;
-  background: rgba(2, 17, 29, 0.74);
-}
-
-.action-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 52px;
-  margin-bottom: 12px;
-  padding: 0 4px;
-}
-
-.action-header h3 {
-  margin-top: 4px;
-  color: #c9dcf5;
-  font-size: 19px;
-}
-
-.mode-toggle-group {
-  display: inline-flex;
-  gap: 3px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--side);
-}
 
 .mode-toggle {
   border: 0;
@@ -361,21 +329,9 @@ p {
   color: #ff8790;
 }
 
-.equipment-board {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: stretch;
-  gap: 12px;
-}
-
 /* ==========================================================================
    7. CONTROLE VISUAL DOS RESERVATÓRIOS (TANQUES)
    ========================================================================== */
-.tank-control-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
 
 /* ==========================================================================
    8. CARTÃO DE EQUIPAMENTO / ATUADOR
@@ -785,12 +741,6 @@ p {
   box-shadow: 0 8px 28px rgba(25, 57, 76, 0.07);
 }
 
-.light-theme .action-panel {
-  border-color: var(--line);
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 4px 18px rgba(29, 69, 93, 0.05);
-}
-
 .light-theme .mode-toggle {
   color: var(--muted);
 }
@@ -831,10 +781,6 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .tank-control-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -855,30 +801,12 @@ p {
   }
 
   /* Painel de Equipamentos e Controle de Modos */
-  .action-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .mode-toggle-group {
-    width: 100%;
-    justify-content: space-between;
-  }
 
   .mode-toggle {
     flex: 1;
     text-align: center;
     padding: 8px 6px;
     font-size: 11px;
-  }
-
-  .equipment-board {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tank-control-grid {
-    grid-template-columns: 1fr;
   }
 
   .action-grid {

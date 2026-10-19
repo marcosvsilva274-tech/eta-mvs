@@ -43,7 +43,7 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
           Automático
         </button>
 
-        <button v-if="!ehVisitante"  type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
+        <button v-if="!ehVisitante" type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
           :aria-pressed="modo === 'MANUAL'" @click="$emit('mudar-modo', 'MANUAL')">
           Manual
         </button>
@@ -71,8 +71,8 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
     </div> -->
 
     <!-- 1. Diagrama de Processo Interativo -->
-    <DiagramaProcesso :equipamentos="equipamentos" :eh-visitante="ehVisitante" :tanques-painel="tanquesPainel" :manual="manual"
-      @equipamento-toggle="(eq) => $emit('equipamento-toggle', eq)" />
+    <DiagramaProcesso :equipamentos="equipamentos" :eh-visitante="ehVisitante" :tanques-painel="tanquesPainel"
+      :manual="manual" @equipamento-toggle="(eq) => $emit('equipamento-toggle', eq)" />
 
     <div class="equipamentos-painal">
       <div class="equipamentos-header">
@@ -105,7 +105,8 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
 
         <div v-if="equipamentosDoTanque.length" class="popup-equipment-grid">
           <CartaoEquipamento v-for="equipamento in equipamentosDoTanque" :key="equipamento.tag"
-            :equipamento="equipamento" :manual="manual" :disabled="!manual || ehVisitante" @toggle="(eq) => $emit('equipamento-toggle', eq)" />
+            :equipamento="equipamento" :manual="manual" :disabled="!manual || ehVisitante"
+            @toggle="(eq) => $emit('equipamento-toggle', eq)" />
         </div>
 
         <p v-else class="empty-actuators-msg">Nenhum atuador configurado para este tanque.</p>
@@ -151,5 +152,95 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
   margin-top: 4px;
   color: var(--text);
   font-size: 20px;
+}
+
+.action-panel {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid rgba(0, 151, 218, 0.42);
+  border-radius: 9px;
+  background: rgba(2, 17, 29, 0.74);
+}
+
+.action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.action-header h3 {
+  margin-top: 4px;
+  color: #c9dcf5;
+  font-size: 19px;
+}
+
+.mode-toggle-group {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--side);
+}
+
+.equipment-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+}
+
+.tank-control-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* ==========================================================================
+   Tema claro
+   ========================================================================== */
+
+.light-theme .action-panel {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 4px 18px rgba(29, 69, 93, 0.05);
+}
+
+
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
+@media (max-width: 1000px) {
+
+  .tank-control-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+
+  .action-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .mode-toggle-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .equipment-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tank-control-grid {
+    grid-template-columns: 1fr;
+  }
+
 }
 </style>
