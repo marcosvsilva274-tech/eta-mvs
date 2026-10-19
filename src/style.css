@@ -37,38 +37,6 @@ p {
   margin: 0;
 }
 
-/* Tema Escuro (Padrão) */
-.scada-app {
-  --bg: #071623;
-  --side: #081d2c;
-  --panel: #0b2234;
-  --line: #183b56;
-  --text: #ecf7ff;
-  --muted: #8ca8bb;
-  --cyan: #16b9f4;
-  --green: #19e69a;
-  --amber: #f5b544;
-  --red: #ff5361;
-  min-height: 100vh;
-  background: radial-gradient(circle at 75% -15%, #123651, transparent 31%), var(--bg);
-  color: var(--text);
-}
-
-/* Tema Claro */
-.scada-app.light-theme {
-  --bg: #eef3f6;
-  --side: #f8fafb;
-  --panel: #ffffff;
-  --line: #cfdae2;
-  --text: #163044;
-  --muted: #5e7483;
-  --cyan: #087da5;
-  --green: #087a50;
-  --amber: #9a5c00;
-  --red: #c53649;
-  background: radial-gradient(circle at 75% -15%, #dcecf4, transparent 31%), var(--bg);
-}
-
 .brand-drop {
   color: var(--cyan);
   font-size: 34px;
@@ -81,9 +49,6 @@ p {
 /* ==========================================================================
    3. CABEÇALHO PRINCIPAL
    ========================================================================== */
-.main-area {
-  min-width: 0;
-}
 
 .breadcrumb,
 .section-kicker {
@@ -155,14 +120,6 @@ p {
 .section-heading h2 {
   margin-top: 4px;
   font-size: 22px;
-}
-
-.update-label,
-.flow-legend,
-.manual-hint,
-.lock-label {
-  color: var(--muted);
-  font-size: 10px;
 }
 
 /* ==========================================================================

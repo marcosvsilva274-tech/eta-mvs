@@ -403,50 +403,31 @@ onBeforeUnmount(() => {
 
   <!-- Aplicação Principal -->
   <div v-else class="scada-app" :class="{ 'light-theme': !temaEscuro }">
-    <BarraLateral
-      :usuario-logado="usuarioLogado"
-      :eh-administrador="ehAdministrador"
-      :pagina="pagina"
-      :paginas-visiveis="paginasComBadge"
-      @navegar="navegar"
-      @sair="sair"
-    />
+    <BarraLateral :usuario-logado="usuarioLogado" :eh-administrador="ehAdministrador" :pagina="pagina"
+      :paginas-visiveis="paginasComBadge" @navegar="navegar" @sair="sair" />
 
     <main class="main-area">
-      <CabecalhoPrincipal
-        :pagina="pagina"
-        :paginas="paginas"
-        :ws-status="mqttStatus"
-        :hora="hora"
-        :data="data"
-        :tema-escuro="temaEscuro"
-        @toggle-tema="temaEscuro = !temaEscuro"
-      />
+      <CabecalhoPrincipal :pagina="pagina" :paginas="paginas" :ws-status="mqttStatus" :hora="hora" :data="data"
+        :tema-escuro="temaEscuro" @toggle-tema="temaEscuro = !temaEscuro" />
 
       <!-- Tela 1: Visão Geral e Controle por Tanque -->
       <section v-if="pagina === 'visao'" class="page-content">
-        <FaixaStatus :hora="hora" :modo="modo" :qtd-alarmes-ativos="alarmesAtivos.length" @ver-alarmes="pagina = 'alarmes'" :etapa-atual="etapaAtual" />
+        <FaixaStatus :hora="hora" :modo="modo" :qtd-alarmes-ativos="alarmesAtivos.length"
+          @ver-alarmes="pagina = 'alarmes'" :etapa-atual="etapaAtual" />
 
         <div class="section-heading">
-          <div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span><h2>Monitoramento por tanque</h2></div>
+          <div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span>
+            <h2>Monitoramento por tanque</h2>
+          </div>
           <span class="update-label">● Atualização automática</span>
         </div>
 
         <PainelStatusTanques :status-tanques="statusTanques" @abrir-detalhe="abrirDetalhe" />
 
-        <PainelEquipamentos
-          :modo="modo"
-          :manual="manual"
-          :ehVisitante="ehVisitante"
-          :tanques-painel="tanquesPainel"
-          :tanque-selecionado-id="tanqueSelecionadoId"
-          :equipamentos="equipamentos"
-          :etapa-atual="etapaAtual"
-          @mudar-modo="mudarModo"
-          @alternar-tanque="alternarControlesTanque"
-          @abrir-detalhe="abrirDetalhe"
-          @equipamento-toggle="equipamentoToggle"
-        />
+        <PainelEquipamentos :modo="modo" :manual="manual" :ehVisitante="ehVisitante" :tanques-painel="tanquesPainel"
+          :tanque-selecionado-id="tanqueSelecionadoId" :equipamentos="equipamentos" :etapa-atual="etapaAtual"
+          @mudar-modo="mudarModo" @alternar-tanque="alternarControlesTanque" @abrir-detalhe="abrirDetalhe"
+          @equipamento-toggle="equipamentoToggle" />
 
         <ModalMetrica :sensor-selecionado="sensorSelecionado" @fechar="sensorSelecionado = null" />
       </section>
@@ -454,13 +435,17 @@ onBeforeUnmount(() => {
       <!-- Tela 2: Histórico e Tendências Graficas -->
       <section v-else-if="pagina === 'historico'" class="page-content inner-page">
         <div class="comparison-heading">
-          <div><span class="section-kicker">ANÁLISE OPERACIONAL</span><h2>Histórico e tendências</h2><p>Compare a evolução das variáveis entre os tanques.</p></div>
+          <div><span class="section-kicker">ANÁLISE OPERACIONAL</span>
+            <h2>Histórico e tendências</h2>
+            <p>Compare a evolução das variáveis entre os tanques.</p>
+          </div>
           <span class="history-source" :class="origemHistorico">● {{ descricaoOrigemHistorico }}</span>
         </div>
 
         <div class="comparison-toolbar">
           <div class="period-control" role="group" aria-label="Período do histórico">
-            <button v-for="horas in [1, 6, 12, 24]" :key="horas" type="button" :class="{ selected: periodo === horas }" :aria-pressed="periodo === horas" @click="periodo = horas">{{ horas }}h</button>
+            <button v-for="horas in [1, 6, 12, 24]" :key="horas" type="button" :class="{ selected: periodo === horas }"
+              :aria-pressed="periodo === horas" @click="periodo = horas">{{ horas }}h</button>
           </div>
           <details class="chart-options">
             <summary>Opções do gráfico</summary>
@@ -472,61 +457,241 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="comparison-grid">
-          <GraficoComparativo
-            v-for="grafico in graficosComparativos"
-            :key="grafico.id"
-            :titulo="grafico.titulo"
-            :unidade="grafico.unidade"
-            :labels="grafico.labels"
-            :datasets="grafico.datasets"
-            :valores-atuais="grafico.valoresAtuais"
-            :tema-escuro="temaEscuro"
-            :marcadores-visiveis="marcadoresVisiveis"
-            :linhas-suaves="linhasSuaves"
-          >
+          <GraficoComparativo v-for="grafico in graficosComparativos" :key="grafico.id" :titulo="grafico.titulo"
+            :unidade="grafico.unidade" :labels="grafico.labels" :datasets="grafico.datasets"
+            :valores-atuais="grafico.valoresAtuais" :tema-escuro="temaEscuro" :marcadores-visiveis="marcadoresVisiveis"
+            :linhas-suaves="linhasSuaves">
 
           </GraficoComparativo>
         </div>
 
-        <HistoricoAcionamentos
-          :historico-acionamentos-filtrado="historicoAcionamentosFiltrado"
-          :filtro-acionamentos="filtroAcionamentos"
-          @atualizar-filtro="(f) => filtroAcionamentos = f"
-        />
+        <HistoricoAcionamentos :historico-acionamentos-filtrado="historicoAcionamentosFiltrado"
+          :filtro-acionamentos="filtroAcionamentos" @atualizar-filtro="(f) => filtroAcionamentos = f" />
 
         <p v-if="notificacaoHistorico" class="history-notification" role="status">{{ notificacaoHistorico }}</p>
       </section>
 
       <!-- Tela 3: Painel de Alarmes -->
       <section v-else-if="pagina === 'alarmes'" class="page-content alarm-page">
-        <PainelAlarmes
-          :alarmes-ativos="alarmesAtivos"
-          :alarmes-historico="alarmesHistorico"
-          :alarmes-resumo="alarmesResumo"
-          :filtro-alarmes="filtroAlarmes"
-          @desativar-alarme="desativarAlarme"
-          @reativar-alarme="reativarAlarme"
-          @atualizar-filtro="(f) => filtroAlarmes = f"
-        />
+        <PainelAlarmes :alarmes-ativos="alarmesAtivos" :alarmes-historico="alarmesHistorico"
+          :alarmes-resumo="alarmesResumo" :filtro-alarmes="filtroAlarmes" @desativar-alarme="desativarAlarme"
+          @reativar-alarme="reativarAlarme" @atualizar-filtro="(f) => filtroAlarmes = f" />
       </section>
 
       <!-- Tela 4: Gestão de Usuários e Sistema -->
       <section v-else-if="pagina === 'configuracoes' && ehAdministrador" class="page-content inner-page">
         <div class="page-title-row">
-          <div><span class="section-kicker">ADMINISTRAÇÃO</span><h2>Configurações do sistema</h2><p>Gerencie contas e parâmetros da estação.</p></div>
+          <div><span class="section-kicker">ADMINISTRAÇÃO</span>
+            <h2>Configurações do sistema</h2>
+            <p>Gerencie contas e parâmetros da estação.</p>
+          </div>
         </div>
 
-        <GestaoUsuarios
-          :usuarios="usuarios"
-          :usuario-logado="usuarioLogado"
-          :mensagem-usuarios="mensagemUsuarios"
-          :usuario-senha-selecionado="usuarioSenhaSelecionado"
-          @adicionar-usuario="adicionarUsuario"
-          @excluir-usuario="excluirUsuario"
-          @abrir-troca-senha="abrirTrocaSenha"
-          @trocar-senha="trocarSenha"
-        />
+        <GestaoUsuarios :usuarios="usuarios" :usuario-logado="usuarioLogado" :mensagem-usuarios="mensagemUsuarios"
+          :usuario-senha-selecionado="usuarioSenhaSelecionado" @adicionar-usuario="adicionarUsuario"
+          @excluir-usuario="excluirUsuario" @abrir-troca-senha="abrirTrocaSenha" @trocar-senha="trocarSenha" />
       </section>
     </main>
   </div>
 </template>
+
+<style scoped>
+.scada-app {
+  --bg: #071623;
+  --side: #081d2c;
+  --panel: #0b2234;
+  --line: #183b56;
+  --text: #ecf7ff;
+  --muted: #8ca8bb;
+  --cyan: #16b9f4;
+  --green: #19e69a;
+  --amber: #f5b544;
+  --red: #ff5361;
+  min-height: 100vh;
+  background: radial-gradient(circle at 75% -15%, #123651, transparent 31%), var(--bg);
+  color: var(--text);
+}
+
+.main-area {
+  min-width: 0;
+}
+
+.update-label,
+.flow-legend,
+.manual-hint,
+.lock-label {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.comparison-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.comparison-heading h2 {
+  margin-top: 5px;
+  font-size: 27px;
+}
+
+.comparison-heading p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.history-source {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.history-source.websocket {
+  color: var(--green);
+}
+
+.history-source.local {
+  color: var(--cyan);
+}
+
+.demo-notice {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 181, 68, .28);
+  border-radius: 6px;
+  background: rgba(245, 181, 68, .07);
+  color: #e9c77f;
+  font-size: 11px;
+}
+
+.comparison-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.period-control {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--side);
+}
+
+.period-control button {
+  min-width: 43px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.period-control button.selected {
+  background: #16b9f426;
+  color: var(--text);
+}
+
+.chart-options {
+  position: relative;
+  z-index: 2;
+  color: var(--text);
+}
+
+.chart-options summary {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.chart-option-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 180px;
+  gap: 11px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .24);
+}
+
+.chart-option-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.share-chart-button {
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font-size: 10px;
+}
+
+.history-notification {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 110;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+}
+
+
+/* ==========================================================================
+   Tema claro
+   ========================================================================== */
+.scada-app.light-theme {
+  --bg: #eef3f6;
+  --side: #f8fafb;
+  --panel: #ffffff;
+  --line: #cfdae2;
+  --text: #163044;
+  --muted: #5e7483;
+  --cyan: #087da5;
+  --green: #087a50;
+  --amber: #9a5c00;
+  --red: #c53649;
+  background: radial-gradient(circle at 75% -15%, #dcecf4, transparent 31%), var(--bg);
+}
+
+
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
