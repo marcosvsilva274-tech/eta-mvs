@@ -54,8 +54,7 @@ defineEmits(['navegar', 'sair'])
   font-weight: bold;
 }
 
-.icon-button,
-.theme-toggle {
+.icon-button {
   border: 0;
   background: transparent;
   color: var(--muted);

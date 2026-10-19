@@ -17,7 +17,6 @@ import HistoricoAcionamentos from './components/historico/HistoricoAcionamentos.
 import PainelAlarmes from './components/alarmes/PainelAlarmes.vue'
 
 import GestaoUsuarios from './components/configuracoes/GestaoUsuarios.vue'
-import GridStatusSistema from './components/configuracoes/GridStatusSistema.vue'
 
 // Importação das regras de negócio (Composables) e autenticação
 import { useMqtt } from './composables/useMqtt'
@@ -529,8 +528,6 @@ onBeforeUnmount(() => {
           @abrir-troca-senha="abrirTrocaSenha"
           @trocar-senha="trocarSenha"
         />
-
-        <GridStatusSistema />
       </section>
     </main>
   </div>

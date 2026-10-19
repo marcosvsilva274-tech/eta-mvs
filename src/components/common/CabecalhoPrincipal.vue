@@ -36,3 +36,119 @@ defineEmits(['toggle-tema'])
     </div>
   </header>
 </template>
+
+<style scoped>
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 99px;
+  padding: 20px 35px;
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 {
+  margin-top: 5px;
+  font-size: 25px;
+}
+
+.topbar-actions,
+.communication,
+.date-time {
+  display: flex;
+  align-items: center;
+}
+
+.topbar-actions {
+  gap: 27px;
+}
+
+.breadcrumb,
+.section-kicker {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.communication {
+  gap: 10px;
+  padding-right: 22px;
+  border-right: 1px solid var(--line);
+}
+
+.communication strong {
+  display: block;
+  color: var(--green);
+  font-size: 11px;
+}
+
+.date-time {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.communication small,
+.date-time span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--amber);
+  font-size: 16px;
+  transition: transform 0.2s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.05);
+}
+
+/* ==========================================================================
+   Responsividade
+   ========================================================================== */
+@media (max-width: 1100px) {
+
+  .topbar,
+  .page-content {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+
+  /* Topbar empilhada */
+  .topbar {
+    align-items: flex-start;
+    gap: 15px;
+    flex-direction: column;
+    padding: 16px 20px;
+    min-height: auto;
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .communication {
+    border: 0;
+    padding: 0;
+  }
+
+  .date-time {
+    margin-left: auto;
+  }
+
+}
+</style>
