@@ -35,7 +35,6 @@ defineEmits(['atualizar-filtro'])
         <div class="actuation-event-main">
           <div class="actuation-event-heading">
             <strong>{{ evento.tipo === 'modo' ? evento.modo : evento.equipamento }}</strong>
-            <span class="actuation-event-kind">{{ evento.tipo === 'modo' ? 'Modo de operação' : evento.identificador }}</span>
           </div>
           <p>{{ evento.descricao }}</p>
         </div>
@@ -48,3 +47,81 @@ defineEmits(['atualizar-filtro'])
     <p v-else class="actuation-history-empty">Nenhum acionamento registrado neste filtro.</p>
   </section>
 </template>
+
+<style scoped>
+
+.actuation-history {
+  margin-top: 22px;
+  padding: 17px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+
+.actuation-history-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 15px;
+}
+
+.actuation-history-filters {
+  display: inline-flex;
+  gap: 3px;
+  margin-bottom: 9px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--side);
+}
+
+.actuation-history-filters button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.actuation-history-filters button.selected {
+  background: rgba(22, 185, 244, .14);
+  color: var(--text);
+}
+
+.actuation-history-item {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) minmax(130px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 13px 3px;
+  border-top: 1px solid var(--line);
+}
+
+.actuation-event-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+}
+.actuation-event-heading span,
+.actuation-event-heading strong {
+  margin-right: 10px;
+}
+
+.actuation-event-main p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.actuation-event-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+</style>
