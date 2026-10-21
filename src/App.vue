@@ -423,7 +423,7 @@ onBeforeUnmount(() => {
     <BarraLateral :usuario-logado="usuarioLogado" :eh-administrador="ehAdministrador" :pagina="pagina"
       :paginas-visiveis="paginasComBadge" @navegar="navegar" @sair="sair" />
 
-    <main class="main-area">
+    <main class="main-area"  @click="fechaDetails($event)">
       <CabecalhoPrincipal :pagina="pagina" :paginas="paginas" :ws-status="mqttStatus" :hora="hora" :data="data"
         :tema-escuro="temaEscuro" @toggle-tema="temaEscuro = !temaEscuro" />
 
@@ -450,7 +450,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Tela 2: Histórico e Tendências Graficas -->
-      <section v-else-if="pagina === 'historico'" class="page-content inner-page" @click="fechaDetails($event)">
+      <section v-else-if="pagina === 'historico'" class="page-content inner-page">
         <div class="comparison-heading">
           <div><span class="section-kicker">ANÁLISE OPERACIONAL</span>
             <h2>Histórico e tendências</h2>
