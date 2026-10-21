@@ -19,7 +19,7 @@ const props = defineProps({
   datasets: { type: Array, required: true },
   valoresAtuais: { type: Array, required: true },
   temaEscuro: { type: Boolean, default: true },
-  marcadoresVisiveis: { type: Boolean, default: false },
+  marcadoresVisiveis: { type: Boolean, default: true },
   linhasSuaves: { type: Boolean, default: true },
 })
 
@@ -59,12 +59,12 @@ function atualizarGrafico() {
   if (!chart) return
 
   // 1. Limita os rótulos do eixo X aos últimos 15 registros
-  chart.data.labels = props.labels.slice(-15)
+  chart.data.labels = props.labels.slice(-30)
 
   // 2. Atualiza os datasets cortando os dados nos últimos 15 e mantendo a propriedade 'hidden'
   chart.data.datasets = props.datasets.map((dataset, index) => ({
     ...dataset,
-    data: Array.isArray(dataset.data) ? dataset.data.slice(-15) : [],
+    data: Array.isArray(dataset.data) ? dataset.data.slice(-30) : [],
     hidden: ocultos.value.has(index), // Mapeia o estado salvo no Set 'ocultos'
     fill: false,
     borderWidth: 2.5,
@@ -136,7 +136,6 @@ onBeforeUnmount(() => chart?.destroy())
     </div>
     <div class="comparison-chart-canvas">
       <canvas ref="canvas" :aria-label="titulo" role="img" />
-      <p v-if="!labels.length" class="chart-empty-state">Sem leituras neste período.</p>
     </div>
   </article>
 </template>
@@ -148,6 +147,7 @@ onBeforeUnmount(() => chart?.destroy())
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--panel);
+  height: 100%;
 }
 
 .comparison-chart-header {

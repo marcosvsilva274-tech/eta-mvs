@@ -73,6 +73,8 @@ const {
   compartilharGrafico
 } = useTelemetria()
 
+const colunas = ref(2)
+
 // Mapeamento completo dos 11 atuadores da planta, vinculando tags JSON, comandos MQTT e tanques do popup
 const equipamentos = ref([
   { nome: 'Bomba Inicial (PM1)', tag: 'bomba_pm1', comando: 'PM1', tipo: 'pump', cor: '#078ee8', ativo: false, ignorarTelemetria: 0, tanqueId: 'agua-bruta' },
@@ -452,6 +454,7 @@ onBeforeUnmount(() => {
             <div class="chart-option-list">
               <label><input v-model="marcadoresVisiveis" type="checkbox"> Realçar pontos</label>
               <label><input v-model="linhasSuaves" type="checkbox"> Suavizar linhas</label>
+              <label><input v-model="colunas" type="number" min="1" max="3" class="inpt-nunber"> Colunas</label>
             </div>
           </details>
         </div>
@@ -639,7 +642,7 @@ onBeforeUnmount(() => {
 
 .comparison-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(v-bind(colunas), minmax(0, 1fr));
   align-items: start;
   gap: 14px;
 }
@@ -676,6 +679,10 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 0 0 1px rgba(136, 177, 204, 0.04);
 }
 
+.inpt-nunber {
+  height: 20px;
+}
+
 /* ==========================================================================
    Tema claro
    ========================================================================== */
@@ -703,13 +710,15 @@ onBeforeUnmount(() => {
 /* ==========================================================================
    Responsividade
    ========================================================================== */
-
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
   .comparison-grid {
     grid-template-columns: 1fr;
   }
-}
 
+  label:has(.inpt-nunber) {
+    display: none;
+  }
+}
 
 @media (max-width: 760px) {
   .alarm-page {
