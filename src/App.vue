@@ -388,6 +388,21 @@ function trocarSenha(conta, novaSenha) {
   mensagemUsuarios.value = `Senha de ${conta.usuario} atualizada.`
 }
 
+// Referencia do menu de opções de graficos
+const detailsRef = ref(null);
+
+// Caso evento de clique seja disparado pela seção de graficos
+function fechaDetails(event) {
+  // verifica se o menu de opções dos graficos existe e está aberta
+  if (detailsRef && detailsRef.value.open) {
+    // Se o clique aconteceu fora do menu
+    if (!detailsRef.value.contains(event.target)) {
+      // Fecha o menu
+      detailsRef.value.open = false
+    }
+  }
+}
+
 let clock
 onMounted(() => {
   clock = window.setInterval(() => { agora.value = new Date() }, 1000)
@@ -435,7 +450,7 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Tela 2: Histórico e Tendências Graficas -->
-      <section v-else-if="pagina === 'historico'" class="page-content inner-page">
+      <section v-else-if="pagina === 'historico'" class="page-content inner-page" @click="fechaDetails($event)">
         <div class="comparison-heading">
           <div><span class="section-kicker">ANÁLISE OPERACIONAL</span>
             <h2>Histórico e tendências</h2>
@@ -449,7 +464,7 @@ onBeforeUnmount(() => {
             <button v-for="horas in [1, 6, 12, 24]" :key="horas" type="button" :class="{ selected: periodo === horas }"
               :aria-pressed="periodo === horas" @click="periodo = horas">{{ horas }}h</button>
           </div>
-          <details class="chart-options">
+          <details class="chart-options" ref="detailsRef">
             <summary>Opções do gráfico</summary>
             <div class="chart-option-list">
               <label><input v-model="marcadoresVisiveis" type="checkbox"> Realçar pontos</label>

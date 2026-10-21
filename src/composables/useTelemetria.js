@@ -30,7 +30,7 @@ export function useTelemetria() {
   const historicoComparativo = ref([])
   const origemHistorico = ref('websocket')
   const periodo = ref(24)
-  const marcadoresVisiveis = ref(false)
+  const marcadoresVisiveis = ref(true)
   const linhasSuaves = ref(true)
   const notificacaoHistorico = ref('')
   let notificacaoTimer = null
