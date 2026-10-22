@@ -73,7 +73,7 @@ const {
   compartilharGrafico
 } = useTelemetria()
 
-const colunas = ref(2)
+const colunas = ref(3)
 
 // Mapeamento completo dos 11 atuadores da planta, vinculando tags JSON, comandos MQTT e tanques do popup
 const equipamentos = ref([
@@ -423,7 +423,7 @@ onBeforeUnmount(() => {
     <BarraLateral :usuario-logado="usuarioLogado" :eh-administrador="ehAdministrador" :pagina="pagina"
       :paginas-visiveis="paginasComBadge" @navegar="navegar" @sair="sair" />
 
-    <main class="main-area"  @click="fechaDetails($event)">
+    <main class="main-area">
       <CabecalhoPrincipal :pagina="pagina" :paginas="paginas" :ws-status="mqttStatus" :hora="hora" :data="data"
         :tema-escuro="temaEscuro" @toggle-tema="temaEscuro = !temaEscuro" />
 
@@ -450,20 +450,15 @@ onBeforeUnmount(() => {
       </section>
 
       <!-- Tela 2: Histórico e Tendências Graficas -->
-      <section v-else-if="pagina === 'historico'" class="page-content inner-page">
+      <section v-else-if="pagina === 'historico'" class="page-content inner-page" @click="fechaDetails($event)">
         <div class="comparison-heading">
           <div><span class="section-kicker">ANÁLISE OPERACIONAL</span>
             <h2>Histórico e tendências</h2>
             <p>Compare a evolução das variáveis entre os tanques.</p>
           </div>
-          <span class="history-source" :class="origemHistorico">● {{ descricaoOrigemHistorico }}</span>
         </div>
 
         <div class="comparison-toolbar">
-          <div class="period-control" role="group" aria-label="Período do histórico">
-            <button v-for="horas in [1, 6, 12, 24]" :key="horas" type="button" :class="{ selected: periodo === horas }"
-              :aria-pressed="periodo === horas" @click="periodo = horas">{{ horas }}h</button>
-          </div>
           <details class="chart-options" ref="detailsRef">
             <summary>Opções do gráfico</summary>
             <div class="chart-option-list">
@@ -629,13 +624,12 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   color: var(--muted);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .chart-option-list {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
   display: grid;
   min-width: 180px;
   gap: 11px;
@@ -651,7 +645,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 8px;
   color: var(--text);
-  font-size: 11px;
+  font-size: 15px;
   white-space: nowrap;
 }
 
@@ -696,6 +690,9 @@ onBeforeUnmount(() => {
 
 .inpt-nunber {
   height: 20px;
+}
+.chart-option-list input {
+  width: 30px;
 }
 
 /* ==========================================================================

@@ -62,7 +62,6 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
         <h2>Diagrama de Processo com Tubulações de Mídia</h2>
       </div>
       <div class="diagram-legend">
-        <span class="legend-item"><i class="dot active"></i> Fluxo Ativo</span>
         <small v-if="!manual && !ehVisitante" class="manual-lock-msg">🔒 Alterne para MANUAL para acionar</small>
       </div>
     </header>
