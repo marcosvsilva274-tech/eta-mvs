@@ -109,6 +109,10 @@ p {
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
+.mode-toggle:disabled {
+  cursor: not-allowed;
+}
+
 .mode-toggle.active {
   background: rgba(22, 185, 244, 0.18);
   color: #ecf9ff;

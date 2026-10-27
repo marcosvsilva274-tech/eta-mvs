@@ -128,7 +128,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           </div>
 
           <button type="button" class="actuator-btn pump-btn pm1" :class="{ active: eq('PM1').ativo }"
-            :disabled="!manual" :title="`${eq('PM1').nome}`" @click="alternar('PM1')">
+            :disabled="!manual || ehVisitante" :title="`${eq('PM1').nome}`" @click="alternar('PM1')">
             <span class="actuator-icon">⚙</span>
             <strong>PM1</strong>
             <small>{{ eq('PM1').ativo ? 'LIG' : 'DESL' }}</small>
@@ -141,21 +141,21 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
           <div class="doser-group">
             <button type="button" class="actuator-btn doser-btn dm1" :class="{ active: eq('DM1').ativo }"
-              :disabled="!manual" :title="`${eq('DM1').nome}`" @click="alternar('DM1')">
+              :disabled="!manual || ehVisitante" :title="`${eq('DM1').nome}`" @click="alternar('DM1')">
               <span class="doser-drop-icon">💧</span>
               <strong>DM1</strong>
               <small>Coagulante</small>
             </button>
 
             <button type="button" class="actuator-btn doser-btn dm2" :class="{ active: eq('DM2').ativo }"
-              :disabled="!manual" :title="`${eq('DM2').nome}`" @click="alternar('DM2')">
+              :disabled="!manual || ehVisitante" :title="`${eq('DM2').nome}`" @click="alternar('DM2')">
               <span class="doser-drop-icon">🧪</span>
               <strong>DM2</strong>
               <small>Alcalin.</small>
             </button>
 
             <button type="button" class="actuator-btn doser-btn dm3" :class="{ active: eq('DM3').ativo }"
-              :disabled="!manual" :title="`${eq('DM3').nome}`" @click="alternar('DM3')">
+              :disabled="!manual || ehVisitante" :title="`${eq('DM3').nome}`" @click="alternar('DM3')">
               <span class="doser-drop-icon">🛡</span>
               <strong>DM3</strong>
               <small>Sanitiz.</small>
@@ -183,7 +183,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
             </div>
 
             <button type="button" class="actuator-btn mixer-btn rm1" :class="{ active: eq('RM1').ativo }"
-              :disabled="!manual" :title="`${eq('RM1').nome}`" @click="alternar('RM1')">
+              :disabled="!manual || ehVisitante" :title="`${eq('RM1').nome}`" @click="alternar('RM1')">
               <span class="mixer-blades" :class="{ spinning: eq('RM1').ativo }">❖</span>
               <strong>RM1</strong>
             </button>
@@ -194,19 +194,19 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
           <div class="bottom-actuators-row">
             <button type="button" class="actuator-btn pump-btn pm2" :class="{ active: eq('PM2').ativo }"
-              :disabled="!manual" :title="`${eq('PM2').nome}`" @click="alternar('PM2')">
+              :disabled="!manual || ehVisitante" :title="`${eq('PM2').nome}`" @click="alternar('PM2')">
               <span class="actuator-icon">⚙</span>
               <strong>PM2</strong>
             </button>
 
             <button type="button" class="actuator-btn valve-btn sv1" :class="{ active: eq('SV1').ativo }"
-              :disabled="!manual" :title="`${eq('SV1').nome}`" @click="alternar('SV1')">
+              :disabled="!manual || ehVisitante" :title="`${eq('SV1').nome}`" @click="alternar('SV1')">
               <strong>SV1</strong>
               <small>Efluente</small>
             </button>
 
             <button type="button" class="actuator-btn valve-btn sv2" :class="{ active: eq('SV2').ativo }"
-              :disabled="!manual" :title="`${eq('SV2').nome}`" @click="alternar('SV2')">
+              :disabled="!manual || ehVisitante" :title="`${eq('SV2').nome}`" @click="alternar('SV2')">
               <strong>SV2</strong>
               <small>Filtro</small>
             </button>
@@ -246,12 +246,12 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
             </div>
 
             <button type="button" class="actuator-btn mixer-btn rm2" :class="{ active: eq('RM2').ativo }"
-              :disabled="!manual" :title="`${eq('RM2').nome}`" @click="alternar('RM2')">
+              :disabled="!manual || ehVisitante" :title="`${eq('RM2').nome}`" @click="alternar('RM2')">
               <span class="mixer-blades" :class="{ spinning: eq('RM2').ativo }">❖</span>
               <strong>RM2</strong>
             </button>
 
-            <button type="button" class="actuator-btn uv-btn h1" :class="{ active: eq('H1').ativo }" :disabled="!manual"
+            <button type="button" class="actuator-btn uv-btn h1" :class="{ active: eq('H1').ativo }" :disabled="!manual || ehVisitante"
               :title="`${eq('H1').nome}`" @click="alternar('H1')">
               <span class="uv-glow-icon">⚡</span>
               <strong>H1 (UV)</strong>
@@ -269,7 +269,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
           </div>
 
           <button type="button" class="actuator-btn pump-btn pm3" :class="{ active: eq('PM3').ativo }"
-            :disabled="!manual" :title="`${eq('PM3').nome}`" @click="alternar('PM3')">
+            :disabled="!manual || ehVisitante" :title="`${eq('PM3').nome}`" @click="alternar('PM3')">
             <span class="actuator-icon">⚙</span>
             <strong>PM3</strong>
           </button>

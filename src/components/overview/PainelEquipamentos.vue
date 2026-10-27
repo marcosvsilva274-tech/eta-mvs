@@ -38,17 +38,17 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
         <h2>Modos de Operação</h2>
       </div>
       <div class="mode-toggle-group">
-        <button type="button" class="mode-toggle" :class="{ active: modo === 'AUTOMÁTICO' }"
+        <button :disabled="ehVisitante" type="button" class="mode-toggle" :class="{ active: modo === 'AUTOMÁTICO' }"
           :aria-pressed="modo === 'AUTOMÁTICO'" @click="$emit('mudar-modo', 'AUTOMÁTICO')">
           Automático
         </button>
 
-        <button v-if="!ehVisitante" type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
+        <button :disabled="ehVisitante" type="button" class="mode-toggle manual" :class="{ active: modo === 'MANUAL' }"
           :aria-pressed="modo === 'MANUAL'" @click="$emit('mudar-modo', 'MANUAL')">
           Manual
         </button>
 
-        <button type="button" class="mode-toggle stop" :class="{ active: modo === 'PARADA' }"
+        <button :disabled="ehVisitante" type="button" class="mode-toggle stop" :class="{ active: modo === 'PARADA' }"
           :aria-pressed="modo === 'PARADA'" @click="$emit('mudar-modo', 'PARADA')">
           Parada total
         </button>
