@@ -21,7 +21,6 @@ export function useMqtt(onTelemetria, onAlerta) {
 
   function reiniciarWatchdog() {
     window.clearTimeout(watchdogTimer)
-    mqttStatus.value = 'online'
 
     watchdogTimer = window.setTimeout(() => {
       mqttStatus.value = 'offline'
@@ -70,6 +69,7 @@ export function useMqtt(onTelemetria, onAlerta) {
     })
 
     client.on('message', (topic, payload) => {
+      mqttStatus.value = 'online'
       const payloadTexto = payload.toString().trim()
 
       if (topic === topicoTelemetria) {

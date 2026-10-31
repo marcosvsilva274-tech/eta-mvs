@@ -23,7 +23,6 @@ defineEmits(['toggle-tema'])
         <span class="live-dot" :class="wsStatus"></span>
         <div>
           <strong>{{ wsStatus === 'online' ? 'ESP32 ONLINE' : 'ESP32 OFFLINE' }}</strong>
-          <small>Backend conectado</small>
         </div>
       </div>
       <div class="date-time">
