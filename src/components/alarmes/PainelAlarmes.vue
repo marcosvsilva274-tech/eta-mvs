@@ -411,7 +411,7 @@ defineEmits(['desativar-alarme', 'reativar-alarme', 'atualizar-filtro'])
 /* ==========================================================================
    Responsividade
    ========================================================================== */
-@media (max-width: 760px) {
+@media (max-width: 860px) {
 
   .alarm-header {
     flex-direction: column;

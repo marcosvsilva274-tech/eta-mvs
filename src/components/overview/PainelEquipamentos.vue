@@ -3,9 +3,11 @@ import { computed } from 'vue'
 import CartaoControleTanque from './CartaoControleTanque.vue'
 import CartaoEquipamento from './CartaoEquipamento.vue'
 import DiagramaProcesso from './DiagramaProcesso.vue'
+import PainelStatusTanques from './PainelStatusTanques.vue'
 import { formatarEtapa } from '../../constantes/etapasProcesso'
 
 const props = defineProps({
+  statusTanques: { type: Array, required: true },
   modo: { type: String, required: true },
   manual: { type: Boolean, default: false },
   ehVisitante: { type: Boolean, default: false },
@@ -64,12 +66,17 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
         <span class="section-kicker">Equipamentos</span>
         <h2>Monitoramento de Equipamentos</h2>
       </div>
-      <!-- 2. Monitoramento Atual (Mantido conforme solicitado) -->
-      <div class="equipment-board">
-        <div class="tank-control-grid">
-          <CartaoControleTanque v-for="tanque in tanquesPainel" :key="tanque.id" :tanque="tanque"
-            :selecionado="tanqueSelecionadoId === tanque.id" @alternar-tanque="(id) => $emit('alternar-tanque', id)"
-            @abrir-detalhe="(m, t) => $emit('abrir-detalhe', m, t)" />
+
+      <div class="panel">
+        <PainelStatusTanques :status-tanques="statusTanques" @abrir-detalhe="(m, t) => $emit('abrir-detalhe', m, t)" />
+        
+        <!-- 2. Monitoramento Atual -->
+        <div class="equipment-board">
+          <div class="tank-control-grid">
+            <CartaoControleTanque v-for="tanque in tanquesPainel" :key="tanque.id" :tanque="tanque"
+              :selecionado="tanqueSelecionadoId === tanque.id" @alternar-tanque="(id) => $emit('alternar-tanque', id)"
+              @abrir-detalhe="(m, t) => $emit('abrir-detalhe', m, t)" />
+          </div>
         </div>
       </div>
     </div>
@@ -97,6 +104,8 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
         <p v-else class="empty-actuators-msg">Nenhum atuador configurado para este tanque.</p>
       </section>
     </div>
+
+
   </div>
 </template>
 
@@ -199,14 +208,21 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
 /* ==========================================================================
    Responsividade
    ========================================================================== */
-@media (max-width: 1000px) {
+@media (max-width: 1200px) {
 
   .tank-control-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+
+  .panel {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+    gap: 12px;
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
 
   .action-header {
     flex-direction: column;
@@ -227,5 +243,11 @@ const porcentagem = computed(() => Math.round((etapa.value.numero / 17) * 100))
     grid-template-columns: 1fr;
   }
 
+}
+
+@media (max-width: 600px) {
+  .panel {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
 }
 </style>

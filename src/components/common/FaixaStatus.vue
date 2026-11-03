@@ -210,7 +210,7 @@ const etapaInfo = computed(() => formatarEtapa(props.etapaAtual))
 /* ==========================================================================
    Responsividade
    ========================================================================== */
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .status-strip {
     flex-wrap: wrap;
     gap: 12px;

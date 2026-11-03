@@ -328,7 +328,7 @@ function submitTrocaSenha(conta) {
 /* ==========================================================================
    Responsividade
    ========================================================================== */
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .user-create-form {
     grid-template-columns: 1fr;
   }

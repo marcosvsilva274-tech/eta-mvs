@@ -123,7 +123,7 @@ defineEmits(['toggle-tema'])
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
 
   /* Topbar empilhada */
   .topbar {

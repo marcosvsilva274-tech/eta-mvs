@@ -58,6 +58,12 @@ defineEmits(['alternar-tanque', 'abrir-detalhe'])
   background: linear-gradient(145deg, rgba(4, 27, 43, 0.95), rgba(1, 14, 24, 0.97));
 }
 
+.tank-control-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(20, 191, 255, 0.78);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
 .tank-control-card.selected {
   border-color: rgba(20, 191, 255, 0.78);
 }
@@ -230,7 +236,7 @@ defineEmits(['alternar-tanque', 'abrir-detalhe'])
    Responsividade
    ========================================================================== */
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .tank-control-card h4 {
     align-self: center;
   }

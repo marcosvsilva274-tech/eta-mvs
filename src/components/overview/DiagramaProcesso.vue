@@ -97,14 +97,14 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
         <!-- TUBULAÇÃO 2B: Ativos -> Efluentes (Via SV1) -->
         <g id="pipe-ativ-eflu" class="pipe-group" :class="{ flowing: fluxoTubulacao2Efluente }">
-          <path d="M 440 280 V 320 H 440" class="pipe-bg brown" />
-          <path d="M 440 280 V 320 H 440" class="pipe-flow water-brown" />
+          <path d="M 440 275 V 315 H 440" class="pipe-bg brown" />
+          <path d="M 440 275 V 315 H 440" class="pipe-flow water-brown" />
         </g>
 
         <!-- TUBULAÇÃO 4: Efluentes -> Retorno Armazenamento (Via PM3) -->
         <g id="pipe-eflu-armaz" class="pipe-group" :class="{ flowing: fluxoTubulacao4Retorno }">
-          <path d="M 485 440 H 30 V 100 H 55" class="pipe-bg" />
-          <path d="M 485 440 H 30 V 100 H 55" class="pipe-flow water-cyan" />
+          <path d="M 485 435 H 30 V 100 H 55" class="pipe-bg" />
+          <path d="M 485 435 H 30 V 100 H 55" class="pipe-flow water-cyan" />
         </g>
 
 
@@ -251,8 +251,8 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
               <strong>RM2</strong>
             </button>
 
-            <button type="button" class="actuator-btn uv-btn h1" :class="{ active: eq('H1').ativo }" :disabled="!manual || ehVisitante"
-              :title="`${eq('H1').nome}`" @click="alternar('H1')">
+            <button type="button" class="actuator-btn uv-btn h1" :class="{ active: eq('H1').ativo }"
+              :disabled="!manual || ehVisitante" :title="`${eq('H1').nome}`" @click="alternar('H1')">
               <span class="uv-glow-icon">⚡</span>
               <strong>H1 (UV)</strong>
             </button>
@@ -303,11 +303,11 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 
 .process-diagram-card {
   margin: 24px 0;
-  padding: 20px;
-  border: 1px solid rgba(0, 151, 218, 0.4);
-  border-radius: 12px;
-  background: rgba(3, 16, 27, 0.94);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  /* padding: 20px; */
+  /* border: 1px solid rgba(0, 151, 218, 0.4); */
+  /* border-radius: 12px; */
+  /* background: rgba(3, 16, 27, 0.94); */
+  /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); */
 }
 
 .diagram-header {
@@ -363,10 +363,13 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 .diagram-viewport {
   position: relative;
   width: 100%;
-  max-width: 1200px;
+  /* max-width: 1200px; */
   min-height: 460px;
-  max-height: 650px;
-  margin: auto;
+  /* max-height: 650px; */
+  /* margin: auto; */
+  /* border: 1px solid rgba(108, 165, 201, 0.28); */
+  /* border-radius: 11px; */
+  /* background: rgba(8, 29, 39, 0.88); */
 }
 
 .pipes-svg-layer {
@@ -679,10 +682,11 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
 /* ==========================================================================
    SUPORTE AO TEMA CLARO (LIGHT THEME)
    ========================================================================== */
+
 .light-theme .process-diagram-card {
   border-color: var(--line);
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 4px 18px rgba(29, 69, 93, 0.08);
+  /* box-shadow: 0 4px 18px rgba(29, 69, 93, 0.08); */
 }
 
 .light-theme .diagram-header {
@@ -787,6 +791,7 @@ const fluxoTubulacao4Retorno = computed(() => eq('PM3').ativo) // Efluentes -> R
   .diagram-viewport {
     max-height: 100%;
     width: 500px;
+    margin: auto;
   }
 
   .diagram-vessel-box:nth-child(n + 2) {

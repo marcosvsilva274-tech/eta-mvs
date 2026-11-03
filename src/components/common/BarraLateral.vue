@@ -143,7 +143,7 @@ defineEmits(['navegar', 'sair'])
   font-size: 10px;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
 
   .brand-mark {
     padding: 12px 13px;

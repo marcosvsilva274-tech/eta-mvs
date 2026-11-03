@@ -24,13 +24,15 @@ defineEmits(['abrir-detalhe'])
 .tank-status-panel {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 18px;
+  gap: 12px;
+  /* margin-top: 18px; */
+  margin-bottom: 12px;
 }
 
 .tank-status-item {
   min-width: 0;
   min-height: 276px;
+  height: 370px;
   padding: 19px 20px 17px;
   border: 1px solid rgba(108, 165, 201, 0.28);
   border-radius: 11px;
@@ -86,21 +88,22 @@ defineEmits(['abrir-detalhe'])
 /* ==========================================================================
    Responsividade
    ========================================================================== */
-@media (max-width: 1100px) {
+/* @media (max-width: 1100px) {
   .tank-status-panel {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+} */
+
+@media (max-width: 1200px) {
+  .tank-status-panel {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    margin-bottom: 0;
   }
 
 }
 
-@media (max-width: 1000px) {
-  .tank-status-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-}
-
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .tank-status-panel {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -113,9 +116,13 @@ defineEmits(['abrir-detalhe'])
 
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .tank-sensor-tags {
     grid-template-columns: 1fr;
+  }
+
+    .tank-status-item {
+    height: auto;
   }
 }
 </style>

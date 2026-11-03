@@ -220,5 +220,5 @@ onBeforeUnmount(() => chart?.destroy())
    Responsividade
    ========================================================================== */
 
-@media (max-width: 760px) {}
+@media (max-width: 860px) {}
 </style>

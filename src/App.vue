@@ -431,16 +431,7 @@ onBeforeUnmount(() => {
         <FaixaStatus :hora="hora" :modo="modo" :qtd-alarmes-ativos="alarmesAtivos.length"
           @ver-alarmes="pagina = 'alarmes'" :etapa-atual="etapaAtual" />
 
-        <div class="section-heading">
-          <div><span class="section-kicker">MONITORAMENTO EM TEMPO REAL</span>
-            <h2>Monitoramento por tanque</h2>
-          </div>
-          <span class="update-label">● Atualização automática</span>
-        </div>
-
-        <PainelStatusTanques :status-tanques="statusTanques" @abrir-detalhe="abrirDetalhe" />
-
-        <PainelEquipamentos :modo="modo" :manual="manual" :ehVisitante="ehVisitante" :tanques-painel="tanquesPainel"
+        <PainelEquipamentos :status-tanques="statusTanques" :modo="modo" :manual="manual" :ehVisitante="ehVisitante" :tanques-painel="tanquesPainel"
           :tanque-selecionado-id="tanqueSelecionadoId" :equipamentos="equipamentos" :etapa-atual="etapaAtual"
           @mudar-modo="mudarModo" @alternar-tanque="alternarControlesTanque" @abrir-detalhe="abrirDetalhe"
           @equipamento-toggle="equipamentoToggle" />
@@ -731,7 +722,7 @@ onBeforeUnmount(() => {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .alarm-page {
     padding: 18px 14px;
     margin-top: 20px;
