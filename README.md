@@ -103,7 +103,7 @@ O ESP32 deve enviar as leituras e o estado do processo utilizando a estrutura JS
 O sistema mapeia o valor da chave `etapa_atual` para a seguinte sequência contínua de 14 etapas, as etapas marcadas como #5 fazem parte do processo de tratamento quimico:
 
 | # | Chave JSON (`etapa_atual`) | Descrição Exibida na Interface |
-|---|----------------------------|--------------------------------|
+| - | -------------------------- | ------------------------------ |
 | **1** | `Inicial` | Enchendo Tanque de Armazenamento |
 | **2** | `VerificNivelAltoArmaz` | Verificando Nível Alto (Armazenamento) |
 | **3** | `EsvaziandoTqArmaz` | Esvaziando Tanque de Armazenamento |
@@ -128,6 +128,6 @@ O sistema mapeia o valor da chave `etapa_atual` para a seguinte sequência cont�
 
 Caso o sistema esteja rodando sem broker MQTT ativo, ele carregará dados demonstrativos para simulação visual.
 
-- **Administrador**: `admin` / `admin123`
-- **Operador**: `operador` / `senha123`
+- **Administrador**
+- **Operador**
 - **Operador**: `visitante` / `1234`
