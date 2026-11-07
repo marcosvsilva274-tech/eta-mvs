@@ -1,8 +1,8 @@
 export const USUARIOS_STORAGE_KEY = 'supervisorio-usuarios-v1'
 
 const usuariosIniciais = [
-  { usuario: 'admin', senha: 'admin123', perfil: 'admin' },
-  { usuario: 'operador', senha: 'senha123', perfil: 'operador' },
+  { usuario: 'admin', senha: '8s1]%We?4M2', perfil: 'admin' },
+  { usuario: 'operador', senha: '</g,Zzf0(7+8', perfil: 'operador' },
   { usuario: 'visitante', senha: '1234', perfil: 'visitante' },
 ]
 
